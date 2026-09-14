@@ -970,7 +970,7 @@ class EventInfoControllerApi extends BaseApiController
 
         $domain = UrlHelper1::getDomainHostName();
         $ct = $objEventOrId->content;
-        $ct = str_replace('<img src="/', '<img src="https://' . $domain . '/', $ct);
+        $ct = preg_replace('#(<img\\b[^>]*?\\bsrc\\s*=\\s*["\'])/(?!/)#i', '${1}https://' . $domain . '/', $ct);
         if (ClassMail1::sendMail(env('SAMPLE_EMAIL2'), 'LAD01', $toEmail, 'Test', $ct)) {
             return rtJsonApiDone("Done id: $idf!");
         }
@@ -1926,7 +1926,7 @@ class EventInfoControllerApi extends BaseApiController
                         }
 
                         $selectTitle = str_replace('content', 'mail_title', $select_content);
-                        $ct = str_replace('<img src="/', '<img src="https://' . $domain . '/', $ct);
+                        $ct = preg_replace('#(<img\\b[^>]*?\\bsrc\\s*=\\s*["\'])/(?!/)#i', '${1}https://' . $domain . '/', $ct);
 
 //                    $linkQR = "https://$domain/user-confirm-event?data=$eventIdEnc|".eth1b($evUser->id);
                         $linkQR = "https://$domain/user-confirm-event/data/$eventIdEnc|" . eth1b($evUser->id);
@@ -2381,7 +2381,7 @@ class EventInfoControllerApi extends BaseApiController
         $eventIdEnc = qqgetRandFromId_($obj->id);
 
         $ct = $obj->content;
-        $ct = str_replace('<img src="/', '<img src="https://' . $domain . '/', $ct);
+        $ct = preg_replace('#(<img\\b[^>]*?\\bsrc\\s*=\\s*["\'])/(?!/)#i', '${1}https://' . $domain . '/', $ct);
         //$ct = str_replace('/xacnhan', "https://$domain/user-confirm-event?id=$eventIdEnc&data_ev=".eth1b(env('SAMPLE_EMAIL1')), $ct);
         $ct = str_replace('/xacnhan', "https://$domain/user-confirm-event/id/$eventIdEnc/data_ev/" . eth1b(env('SAMPLE_EMAIL1')), $ct);
 
