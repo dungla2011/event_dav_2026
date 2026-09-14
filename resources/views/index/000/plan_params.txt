@@ -1,0 +1,72 @@
+# Các tham số được lưu trong plan_params JSON của bảng plan_names
+
+# Thông tin so sánh đầu tư
+compare_name              # Tên loại hình đầu tư so sánh
+compare_rate              # Phần trăm lãi suất so sánh
+
+# Giá bán và lượng bán dự kiến
+input_gia_ban_du_kien              # Giá bán dự kiến
+input_luong_ban_du_kien_thang      # Lượng bán dự kiến/tháng
+
+# 4 kịch bản sản lượng bán dự kiến
+input_san_luong_ban_du_kien_thang_1
+input_san_luong_ban_du_kien_thang_2
+input_san_luong_ban_du_kien_thang_3
+input_san_luong_ban_du_kien_thang_4
+
+# Sản lượng 12 tháng (phân bổ từng tháng)
+san_luong_thang_1
+san_luong_thang_2
+san_luong_thang_3
+san_luong_thang_4
+san_luong_thang_5
+san_luong_thang_6
+san_luong_thang_7
+san_luong_thang_8
+san_luong_thang_9
+san_luong_thang_10
+san_luong_thang_11
+san_luong_thang_12
+
+# Năng lực bán 12 tháng
+nang_luc_nv_ban_thang_1
+nang_luc_nv_ban_thang_2
+nang_luc_nv_ban_thang_3
+nang_luc_nv_ban_thang_4
+nang_luc_nv_ban_thang_5
+nang_luc_nv_ban_thang_6
+nang_luc_nv_ban_thang_7
+nang_luc_nv_ban_thang_8
+nang_luc_nv_ban_thang_9
+nang_luc_nv_ban_thang_10
+nang_luc_nv_ban_thang_11
+nang_luc_nv_ban_thang_12
+
+# Tỷ lệ chuyển đổi 12 tháng
+ty_le_chuyen_doi_thang_1
+ty_le_chuyen_doi_thang_2
+ty_le_chuyen_doi_thang_3
+ty_le_chuyen_doi_thang_4
+ty_le_chuyen_doi_thang_5
+ty_le_chuyen_doi_thang_6
+ty_le_chuyen_doi_thang_7
+ty_le_chuyen_doi_thang_8
+ty_le_chuyen_doi_thang_9
+ty_le_chuyen_doi_thang_10
+ty_le_chuyen_doi_thang_11
+ty_le_chuyen_doi_thang_12
+
+ty_le_chuyen_doi_lien_lac
+ty_le_chuyen_doi_chat
+ty_le_chuyen_doi_like
+ty_le_chuyen_doi_seen
+
+
+
+lien_lac_thang_1 = san_luong_thang_1 * ty_le_chuyen_doi_lien_lac
+tuong_tac_chat_thang_1 = lien_lac_thang_1 * ty_le_chuyen_doi_chat
+tuong_tac_like_thang_1 = tuong_tac_chat_thang_1 * ty_le_chuyen_doi_like
+tuong_tac_seen_thang_1 = tuong_tac_like_thang_1  * ty_le_chuyen_doi_seen
+
+
+

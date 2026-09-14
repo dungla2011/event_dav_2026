@@ -1,0 +1,532 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-09-02T23:04:01.798Z",
+  "global": {
+    "showTitle": true,
+    "showBirthday": true,
+    "showImage": true,
+    "showDeathDate": false,
+    "showMarriageLinks": true,
+    "nodeSpacing": 15,
+    "levelSpacing": 150,
+    "textRotation": "horizontal",
+    "textAlignment": "left",
+    "nodeWidth": 323,
+    "nodeHeight": 100,
+    "orientationDimensions": {
+      "horizontal": {
+        "width": 323,
+        "height": 100
+      },
+      "vertical": {
+        "width": 100,
+        "height": 200
+      }
+    },
+    "nameFontFamily": "Arial, sans-serif",
+    "nameFontSize": 20,
+    "nameColor": "#2c3e50",
+    "nameItalic": false,
+    "nameBold": false,
+    "nameUnderline": false,
+    "titleFontFamily": "Arial, sans-serif",
+    "titleFontSize": 12,
+    "titleColor": "#333333",
+    "titleItalic": false,
+    "titleBold": false,
+    "titleUnderline": false,
+    "birthdayFontFamily": "Arial, sans-serif",
+    "birthdayFontSize": 11,
+    "birthdayColor": "#666666",
+    "birthdayItalic": false,
+    "birthdayBold": false,
+    "birthdayUnderline": false,
+    "nameMargin": 16,
+    "titleMargin": 16,
+    "textAlignmentOffset": 57,
+    "textAlignmentOffsetY": 0,
+    "imageSize": 40,
+    "imagePosition": "left",
+    "imageMargin": 5,
+    "imagePaddingTop": 5,
+    "imagePaddingRight": 5,
+    "imagePaddingBottom": 5,
+    "imagePaddingLeft": 5,
+    "enableNodeBg": true,
+    "nodeBgColor": "#ffffff",
+    "nodeOpacity": 1
+  },
+  "levels": {
+    "0": {
+      "orientation": "horizontal",
+      "width": 899,
+      "height": 311,
+      "spacing": 15,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "center",
+      "textOffset": 14,
+      "textOffsetY": 50,
+      "nameFontSize": 50,
+      "nameColor": "#000000",
+      "nameItalic": false,
+      "nameBold": true,
+      "nameUnderline": false,
+      "titleColor": "#000000",
+      "titleItalic": false,
+      "titleBold": false,
+      "titleUnderline": false,
+      "birthdayColor": "#000000",
+      "birthdayItalic": false,
+      "birthdayBold": false,
+      "birthdayUnderline": false,
+      "nameMargin": 80,
+      "titleFontSize": 60
+    },
+    "1": {
+      "orientation": "horizontal",
+      "width": 375,
+      "height": 227,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 100,
+      "textOffsetY": 27,
+      "nameFontSize": 40,
+      "nameColor": "#000000",
+      "nameItalic": false,
+      "nameBold": false,
+      "nameUnderline": false,
+      "titleColor": "#000000",
+      "titleItalic": false,
+      "titleBold": false,
+      "titleUnderline": false,
+      "birthdayColor": "#000000",
+      "birthdayItalic": false,
+      "birthdayBold": false,
+      "birthdayUnderline": false,
+      "titleFontSize": 20,
+      "nameMargin": 30,
+      "imageSize": 60,
+      "imagePosition": "top",
+      "imagePaddingTop": 30
+    },
+    "2": {
+      "orientation": "horizontal",
+      "width": 855,
+      "height": 171,
+      "spacing": 265,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 107,
+      "textOffsetY": 17,
+      "nameFontSize": 40,
+      "nameColor": "#000000",
+      "nameItalic": false,
+      "nameBold": false,
+      "nameUnderline": false,
+      "nameMargin": 40,
+      "titleFontSize": 30,
+      "titleColor": "#000000",
+      "titleItalic": false,
+      "titleBold": false,
+      "titleUnderline": false,
+      "birthdayColor": "#000000",
+      "birthdayItalic": false,
+      "birthdayBold": false,
+      "birthdayUnderline": false,
+      "imagePaddingLeft": 20,
+      "imageSize": 60
+    },
+    "3": {
+      "orientation": "horizontal",
+      "width": 298,
+      "height": 100,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 61,
+      "textOffsetY": 18
+    },
+    "4": {
+      "orientation": "horizontal",
+      "width": 368,
+      "height": 100,
+      "spacing": 164,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 100,
+      "textOffsetY": 23
+    },
+    "5": {
+      "orientation": "horizontal",
+      "width": 291,
+      "height": 100,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 66,
+      "textOffsetY": 21
+    },
+    "6": {
+      "orientation": "horizontal",
+      "width": 284,
+      "height": 100,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 54,
+      "textOffsetY": 24
+    },
+    "7": {
+      "orientation": "horizontal",
+      "width": 220,
+      "height": 100,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": false
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 16,
+      "textOffsetY": 18
+    },
+    "8": {
+      "orientation": "horizontal",
+      "width": 291,
+      "height": 100,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "",
+      "textOffset": 66,
+      "textOffsetY": 15
+    },
+    "9": {
+      "orientation": "horizontal",
+      "width": 262,
+      "height": 100,
+      "spacing": 20,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 61,
+      "textOffsetY": 27
+    },
+    "10": {
+      "orientation": "horizontal",
+      "width": 105,
+      "height": 347,
+      "spacing": 15,
+      "textRotation": "vertical-bottom",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 323,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "",
+      "textOffset": 59,
+      "textOffsetY": -14,
+      "imagePosition": "top"
+    },
+    "11": {
+      "orientation": "horizontal",
+      "width": 90,
+      "height": 354,
+      "spacing": 15,
+      "textRotation": "vertical-bottom",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 66,
+      "textOffsetY": 0,
+      "imagePosition": "top"
+    },
+    "12": {
+      "orientation": "horizontal",
+      "width": 66,
+      "height": 297,
+      "spacing": 15,
+      "textRotation": "vertical-bottom",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 59,
+      "textOffsetY": -10,
+      "imagePosition": "top"
+    },
+    "13": {
+      "orientation": "horizontal",
+      "width": 57,
+      "height": 337,
+      "spacing": 15,
+      "textRotation": "vertical-bottom",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "left",
+      "textOffset": 61,
+      "textOffsetY": -12,
+      "imagePosition": "top"
+    },
+    "14": {
+      "orientation": "horizontal",
+      "width": 100,
+      "height": 311,
+      "spacing": 15,
+      "textRotation": "vertical-bottom",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "",
+      "textOffset": 68,
+      "textOffsetY": 0,
+      "imagePosition": "top"
+    },
+    "15": {
+      "orientation": "horizontal",
+      "width": 281,
+      "height": 100,
+      "spacing": 15,
+      "textRotation": "",
+      "displayOptions": {
+        "showTitle": true,
+        "showBirthday": true,
+        "showDeathDate": true,
+        "showImage": true
+      },
+      "orientationDimensions": {
+        "horizontal": {
+          "width": 200,
+          "height": 100
+        },
+        "vertical": {
+          "width": 100,
+          "height": 200
+        }
+      },
+      "textAlignment": "",
+      "textOffset": 61,
+      "textOffsetY": 14
+    }
+  }
+}

@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cây Gia Phả - D3.js Full Export</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+        
+        .main-content {
+            display: flex;
+            height: calc(100vh - 120px);
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .tree-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #tree-svg {
+            width: 100%;
+            height: 100%;
+            background: #fafafa;
+        }
+        
+        .person-node {
+            cursor: pointer;
+            transition: filter 0.2s ease;
+        }
+        
+        .person-node:hover {
+            filter: brightness(1.1);
+        }
+        
+        .person-node.selected {
+            stroke: #e74c3c;
+            stroke-width: 3px;
+        }
+        
+        .person-rect {
+            rx: 8;
+            ry: 8;
+            fill: white;
+            stroke-width: 3;
+        }
+        
+        .person-rect.male {
+            stroke: #3498db;
+        }
+        
+        .person-rect.female {
+            stroke: #e91e63;
+        }
+        
+        .person-rect.unknown {
+            stroke: #95a5a6;
+        }
+        
+        .person-rect.deceased {
+            stroke: #7f8c8d;
+            stroke-dasharray: 8,4;
+        }
+        
+        .person-rect.in-law {
+            stroke: #f39c12;
+            stroke-width: 4;
+        }
+        
+        .person-rect.second-marriage-child {
+            stroke: #9b59b6;
+            stroke-width: 4;
+        }
+        
+        .person-name {
+            fill: #2c3e50;
+            font-weight: bold;
+            font-size: 13px;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        
+        .person-info {
+            fill: #7f8c8d;
+            font-size: 11px;
+            text-anchor: middle;
+        }
+        
+        .tree-link {
+            fill: none;
+            stroke: #7f8c8d;
+            stroke-width: 2;
+        }
+        
+        .marriage-link {
+            stroke: #e74c3c;
+            stroke-width: 3;
+            stroke-dasharray: 8,4;
+        }
+        
+        .marriage-link.second-marriage {
+            stroke: #9b59b6;
+            stroke-width: 4;
+            stroke-dasharray: 12,6;
+        }
+        
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .option-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .option-item label {
+            font-size: 14px;
+            color: #34495e;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .stats {
+            background: #e8f4fd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌳 Cây Gia Phả - Full Export</h1>
+        <div class="controls">
+            <button onclick="zoomIn()">🔍 Phóng to</button>
+            <button onclick="zoomOut()">🔍 Thu nhỏ</button>
+            <button onclick="resetZoom()">🔄 Reset</button>
+            <button onclick="centerTree()">🎯 Căn giữa</button>
+            <button onclick="exportFullSVG()">💾 Xuất SVG đầy đủ</button>
+            <button onclick="loadDataJSON()">🔄 Load data.json</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <input type="text" class="search-box" placeholder="🔍 Tìm kiếm thành viên..." id="searchInput">
+            
+            <div class="stats" id="treeStats">
+                <strong>📊 Thống kê:</strong><br>
+                Tổng: <span id="totalCount">0</span> người<br>
+                Nam: <span id="maleCount">0</span> | Nữ: <span id="femaleCount">0</span><br>
+                Đã mất: <span id="deceasedCount">0</span>
+            </div>
+
+            <div class="option-group">
+                <h3>⚙️ Tùy chọn hiển thị</h3>
+                <div class="option-item">
+                    <input type="checkbox" id="showTitle" checked>
+                    <label for="showTitle">Hiển thị chức danh</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showBirthday" checked>
+                    <label for="showBirthday">Hiển thị ngày sinh</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showImage">
+                    <label for="showImage">Hiển thị ảnh</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showDeathDate">
+                    <label for="showDeathDate">Hiển thị ngày mất</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showMarriageLinks" checked>
+                    <label for="showMarriageLinks">Hiển thị quan hệ hôn nhân</label>
+                </div>
+                <div class="option-item">
+                    <label for="nodeSpacing">Khoảng cách node:</label>
+                    <input type="range" id="nodeSpacing" min="10" max="100" value="20" style="width: 100px;">
+                    <span id="nodeSpacingValue">20px</span>
+                </div>
+                <div class="option-item">
+                    <label for="levelSpacing">Khoảng cách tầng:</label>
+                    <input type="range" id="levelSpacing" min="100" max="250" value="150" style="width: 100px;">
+                    <span id="levelSpacingValue">150px</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="tree-container">
+            <svg id="tree-svg"></svg>
+        </div>
+    </div>
+
+    <input type="file" id="fileInput" style="display: none;" accept=".json">
+
+    <script>
+        // Global variables
+        let familyData = [];
+        let svg, g, root;
+        let width, height;
+        let zoom;
+
+        // Node dimensions và spacing
+        const nodeWidth = 180;
+        const nodeHeight = 100;
+        let minNodeSpacing = 20;
+        let levelSpacing = 150;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTree();
+            setupEventListeners();
+            // Tự động load data.json từ đầu
+            loadDataJSON();
+        });
+
+        function initializeTree() {
+            const container = document.querySelector('.tree-container');
+            width = container.clientWidth;
+            height = container.clientHeight;
+
+            svg = d3.select("#tree-svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            g = svg.append("g");
+
+            // Setup zoom
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+        }
+
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                searchPerson(e.target.value);
+            });
+
+            // Option checkboxes
+            const options = ['showTitle', 'showBirthday', 'showImage', 'showDeathDate', 'showMarriageLinks'];
+            options.forEach(option => {
+                document.getElementById(option).addEventListener('change', updateDisplay);
+            });
+
+            // Spacing sliders
+            document.getElementById('nodeSpacing').addEventListener('input', function(e) {
+                minNodeSpacing = parseInt(e.target.value);
+                document.getElementById('nodeSpacingValue').textContent = minNodeSpacing + 'px';
+                updateDisplay();
+            });
+
+            document.getElementById('levelSpacing').addEventListener('input', function(e) {
+                levelSpacing = parseInt(e.target.value);
+                document.getElementById('levelSpacingValue').textContent = levelSpacing + 'px';
+                updateDisplay();
+            });
+        }
+
+        function loadSampleData() {
+            console.log("🔄 Loading sample data as fallback...");
+            
+            familyData = [
+                {
+                    "id": 1,
+                    "name": "Ông Tổ",
+                    "title": "Tổ tiên",
+                    "birthday": "1900-01-01",
+                    "parent_id": 0,
+                    "married_with": 2,
+                    "gender": 1,
+                    "date_of_death": "1980-12-31",
+                    "place_heaven": "Quê nhà",
+                    "_image_list": null,
+                    "has_child": 1,
+                    "child_of_second_married": null
+                },
+                {
+                    "id": 2,
+                    "name": "Bà Tổ",
+                    "title": "Tổ tiên",
+                    "birthday": "1905-01-01", 
+                    "parent_id": 0,
+                    "married_with": 1,
+                    "gender": 2,
+                    "date_of_death": "1985-12-31",
+                    "place_heaven": "Quê nhà",
+                    "_image_list": null,
+                    "has_child": 1,
+                    "child_of_second_married": null
+                },
+                {
+                    "id": 3,
+                    "name": "Con trai 1",
+                    "title": "Con cả",
+                    "birthday": "1925-01-01",
+                    "parent_id": 1,
+                    "married_with": null,
+                    "gender": 1,
+                    "date_of_death": null,
+                    "place_heaven": null,
+                    "_image_list": null,
+                    "has_child": 0,
+                    "child_of_second_married": null
+                },
+                {
+                    "id": 4,
+                    "name": "Con gái 1",
+                    "title": "Con thứ 2",
+                    "birthday": "1927-01-01",
+                    "parent_id": 1,
+                    "married_with": null,
+                    "gender": 2,
+                    "date_of_death": null,
+                    "place_heaven": null,
+                    "_image_list": null,
+                    "has_child": 0,
+                    "child_of_second_married": null
+                }
+            ];
+            
+            processData();
+            updateDisplay();
+            updateStats();
+            
+            console.log("✅ Sample data loaded with", familyData.length, "members");
+        }
+
+        function processData() {
+            console.log("Processing data with", familyData.length, "members");
+            
+            const nodeMap = new Map();
+            
+            // Tạo map cho tất cả các person
+            familyData.forEach(person => {
+                nodeMap.set(person.id, {
+                    ...person,
+                    children: []
+                });
+            });
+
+            // Xây dựng cây phả hệ
+            familyData.forEach(person => {
+                if (person.parent_id && person.parent_id !== 0) {
+                    const parent = nodeMap.get(person.parent_id);
+                    const child = nodeMap.get(person.id);
+                    
+                    if (parent && child) {
+                        parent.children.push(child);
+                    }
+                }
+            });
+
+            // Tìm root nodes
+            const roots = Array.from(nodeMap.values()).filter(p => !p.parent_id || p.parent_id === 0);
+            console.log("Found", roots.length, "root nodes");
+            
+            if (roots.length > 0) {
+                root = d3.hierarchy({children: roots});
+                console.log("Created hierarchy with", root.descendants().length, "total nodes");
+            }
+        }
+
+        function updateDisplay() {
+            if (!root) return;
+
+            // Clear previous
+            g.selectAll("*").remove();
+
+            // Sử dụng thuật toán layout tùy chỉnh
+            customTreeLayout(root);
+
+            // Draw links
+            const links = g.selectAll(".tree-link")
+                .data(root.links())
+                .enter().append("path")
+                .attr("class", "tree-link")
+                .attr("d", customLinkPath);
+
+            // Draw marriage links
+            if (document.getElementById('showMarriageLinks').checked) {
+                drawMarriageLinks();
+            }
+
+            // Draw nodes
+            const nodeGroups = g.selectAll(".person-node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", "person-node")
+                .attr("transform", d => `translate(${d.x - nodeWidth/2},${d.y - nodeHeight/2})`)
+                .on("click", (event, d) => selectPerson(d.data));
+
+            // Add rectangles
+            nodeGroups.append("rect")
+                .attr("class", d => {
+                    let classes = `person-rect ${getGenderClass(d.data)} ${d.data.date_of_death ? 'deceased' : ''}`;
+                    if (d.data.isInLaw) classes += ' in-law';
+                    if (d.data.child_of_second_married) classes += ' second-marriage-child';
+                    return classes;
+                })
+                .attr("width", nodeWidth)
+                .attr("height", nodeHeight);
+
+            // Add name text
+            nodeGroups.append("text")
+                .attr("class", "person-name")
+                .attr("x", nodeWidth / 2)
+                .attr("y", nodeHeight / 2)
+                .text(d => truncateText(d.data.name, 20));
+
+            // Add additional info
+            addAdditionalInfo(nodeGroups);
+        }
+
+        function customTreeLayout(root) {
+            const nodes = root.descendants();
+            
+            // Nhóm nodes theo level
+            const levels = {};
+            nodes.forEach(node => {
+                if (!levels[node.depth]) levels[node.depth] = [];
+                levels[node.depth].push(node);
+            });
+
+            // Xếp vị trí cho từng level
+            Object.keys(levels).forEach(levelKey => {
+                const level = parseInt(levelKey);
+                const levelNodes = levels[level];
+                
+                const y = level * levelSpacing + 50;
+                const totalWidth = levelNodes.length * nodeWidth + (levelNodes.length - 1) * minNodeSpacing;
+                let startX = (width - totalWidth) / 2;
+                if (startX < 50) startX = 50;
+                
+                levelNodes.forEach((node, index) => {
+                    node.x = startX + index * (nodeWidth + minNodeSpacing) + nodeWidth / 2;
+                    node.y = y;
+                });
+            });
+        }
+
+        function customLinkPath(d) {
+            const sourceX = d.source.x;
+            const sourceY = d.source.y + nodeHeight / 2;
+            const targetX = d.target.x;
+            const targetY = d.target.y - nodeHeight / 2;
+            
+            // Tính toán đường ngang riêng cho mỗi parent để tránh trùng lặp
+            const sourceLevel = d.source.depth;
+            const targetLevel = d.target.depth;
+            
+            // Tìm tất cả parent nodes ở cùng level với source
+            const allParentsAtLevel = root.descendants().filter(node => 
+                node.depth === sourceLevel && node.children && node.children.length > 0
+            );
+            
+            // Tìm vị trí index của parent hiện tại
+            const parentIndex = allParentsAtLevel.findIndex(node => node === d.source);
+            
+            // Tính toán khoảng cách giữa các đường ngang
+            const totalVerticalSpace = targetY - sourceY;
+            const horizontalLineSpacing = totalVerticalSpace / (allParentsAtLevel.length + 1);
+            
+            // Tính Y position cho đường ngang của parent này (đảo ngược: parent đầu tiên ở thấp nhất)
+            const horizontalY = targetY - horizontalLineSpacing * (parentIndex + 1);
+            
+            return `M${sourceX},${sourceY}
+                    L${sourceX},${horizontalY}
+                    L${targetX},${horizontalY}
+                    L${targetX},${targetY}`;
+        }
+
+        function drawMarriageLinks() {
+            const marriages = [];
+            const processed = new Set();
+
+            familyData.forEach(person => {
+                if (person.married_with && !processed.has(`${person.id}-${person.married_with}`)) {
+                    const spouse = familyData.find(p => p.id === person.married_with);
+                    if (spouse) {
+                        marriages.push({person, spouse});
+                        processed.add(`${person.id}-${person.married_with}`);
+                        processed.add(`${person.married_with}-${person.id}`);
+                    }
+                }
+            });
+
+            marriages.forEach(marriage => {
+                const node1 = root.descendants().find(d => d.data.id === marriage.person.id);
+                const node2 = root.descendants().find(d => d.data.id === marriage.spouse.id);
+
+                if (node1 && node2) {
+                    g.append("line")
+                        .attr("class", "marriage-link")
+                        .attr("x1", node1.x)
+                        .attr("y1", node1.y)
+                        .attr("x2", node2.x)
+                        .attr("y2", node2.y);
+                }
+            });
+        }
+
+        function addAdditionalInfo(nodes) {
+            let yPos = nodeHeight / 2 + 20;
+            const lineHeight = 14;
+
+            if (document.getElementById('showTitle').checked) {
+                nodes.filter(d => d.data.title)
+                    .append("text")
+                    .attr("class", "person-info")
+                    .attr("x", nodeWidth / 2)
+                    .attr("y", yPos)
+                    .text(d => truncateText(d.data.title, 16));
+                yPos += lineHeight;
+            }
+
+            if (document.getElementById('showBirthday').checked) {
+                nodes.filter(d => d.data.birthday)
+                    .append("text")
+                    .attr("class", "person-info")
+                    .attr("x", nodeWidth / 2)
+                    .attr("y", yPos)
+                    .text(d => formatDate(d.data.birthday));
+                yPos += lineHeight;
+            }
+
+            if (document.getElementById('showDeathDate').checked) {
+                nodes.filter(d => d.data.date_of_death)
+                    .append("text")
+                    .attr("class", "person-info")
+                    .attr("x", nodeWidth / 2)
+                    .attr("y", yPos)
+                    .text(d => "✝ " + formatDate(d.data.date_of_death));
+                yPos += lineHeight;
+            }
+
+            if (document.getElementById('showImage').checked) {
+                nodes.filter(d => d.data._image_list)
+                    .append("text")
+                    .attr("class", "person-info")
+                    .attr("x", nodeWidth / 2)
+                    .attr("y", yPos)
+                    .text("📷");
+            }
+        }
+
+        function selectPerson(person) {
+            console.log("Selected:", person.name);
+        }
+
+        function searchPerson(query) {
+            // Implementation for search
+        }
+
+        function updateStats() {
+            const total = familyData.length;
+            const male = familyData.filter(p => p.gender === 1).length;
+            const female = familyData.filter(p => p.gender === 2).length;
+            const deceased = familyData.filter(p => p.date_of_death).length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('maleCount').textContent = male;
+            document.getElementById('femaleCount').textContent = female;
+            document.getElementById('deceasedCount').textContent = deceased;
+        }
+
+        // Utility functions
+        function getGenderClass(person) {
+            if (person.gender === 1) return 'male';
+            if (person.gender === 2) return 'female';
+            return 'unknown';
+        }
+
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        // Control functions
+        function zoomIn() {
+            svg.transition().call(zoom.scaleBy, 1.5);
+        }
+
+        function zoomOut() {
+            svg.transition().call(zoom.scaleBy, 1 / 1.5);
+        }
+
+        function resetZoom() {
+            svg.transition().call(zoom.transform, d3.zoomIdentity);
+        }
+
+        function centerTree() {
+            if (!root) return;
+            const bounds = g.node().getBBox();
+            const fullWidth = width, fullHeight = height;
+            const widthScale = fullWidth / bounds.width;
+            const heightScale = fullHeight / bounds.height;
+            const scale = Math.min(widthScale, heightScale) * 0.8;
+            const translate = [fullWidth / 2 - scale * (bounds.x + bounds.width / 2), 
+                              fullHeight / 2 - scale * (bounds.y + bounds.height / 2)];
+
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }
+
+        function exportFullSVG() {
+            // Tạo SVG mới với toàn bộ cây
+            const fullSVG = createFullTreeSVG();
+            if (!fullSVG) {
+                alert("❌ Không có dữ liệu để xuất!");
+                return;
+            }
+            
+            // Tạo CSS styles
+            const cssStyles = `
+                <style>
+                <![CDATA[
+                .tree-link { fill: none; stroke: #7f8c8d; stroke-width: 2; }
+                .marriage-link { stroke: #e74c3c; stroke-width: 3; stroke-dasharray: 8,4; }
+                .person-rect { rx: 8; ry: 8; fill: white; stroke-width: 3; }
+                .person-rect.male { stroke: #3498db; }
+                .person-rect.female { stroke: #e91e63; }
+                .person-rect.unknown { stroke: #95a5a6; }
+                .person-rect.deceased { stroke: #7f8c8d; stroke-dasharray: 8,4; }
+                .person-rect.in-law { stroke: #f39c12; stroke-width: 4; }
+                .person-rect.second-marriage-child { stroke: #9b59b6; stroke-width: 4; }
+                .person-name { fill: #2c3e50; font-weight: bold; font-size: 13px; text-anchor: middle; dominant-baseline: middle; font-family: Arial, sans-serif; }
+                .person-info { fill: #7f8c8d; font-size: 11px; text-anchor: middle; font-family: Arial, sans-serif; }
+                ]]>
+                </style>
+            `;
+            
+            fullSVG.insertAdjacentHTML('afterbegin', cssStyles);
+            fullSVG.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            fullSVG.setAttribute('version', '1.1');
+            
+            // Download
+            const svgData = new XMLSerializer().serializeToString(fullSVG);
+            const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `family-tree-full-${new Date().toISOString().slice(0,10)}.svg`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            console.log("✅ Đã xuất TOÀN BỘ cây gia phả!");
+        }
+
+        function createFullTreeSVG() {
+            if (!root) return null;
+            
+            // Tính toán kích thước toàn bộ cây
+            const nodes = root.descendants();
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            
+            nodes.forEach(node => {
+                minX = Math.min(minX, node.x - nodeWidth/2);
+                maxX = Math.max(maxX, node.x + nodeWidth/2);
+                minY = Math.min(minY, node.y - nodeHeight/2);
+                maxY = Math.max(maxY, node.y + nodeHeight/2);
+            });
+            
+            // Thêm margin
+            const margin = 50;
+            const svgWidth = maxX - minX + 2 * margin;
+            const svgHeight = maxY - minY + 2 * margin;
+            const offsetX = -minX + margin;
+            const offsetY = -minY + margin;
+            
+            // Tạo SVG mới
+            const newSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            newSVG.setAttribute("width", svgWidth);
+            newSVG.setAttribute("height", svgHeight);
+            newSVG.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+            
+            const newG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            newG.setAttribute("transform", `translate(${offsetX}, ${offsetY})`);
+            newSVG.appendChild(newG);
+            
+            // Vẽ links
+            root.links().forEach(link => {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("class", "tree-link");
+                path.setAttribute("d", customLinkPath(link));
+                newG.appendChild(path);
+            });
+            
+            // Vẽ nodes
+            nodes.forEach(node => {
+                const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                nodeGroup.setAttribute("class", "person-node");
+                nodeGroup.setAttribute("transform", `translate(${node.x - nodeWidth/2}, ${node.y - nodeHeight/2})`);
+                
+                // Rectangle
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                let classes = `person-rect ${getGenderClass(node.data)} ${node.data.date_of_death ? 'deceased' : ''}`;
+                rect.setAttribute("class", classes);
+                rect.setAttribute("width", nodeWidth);
+                rect.setAttribute("height", nodeHeight);
+                nodeGroup.appendChild(rect);
+                
+                // Name text
+                const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                nameText.setAttribute("class", "person-name");
+                nameText.setAttribute("x", nodeWidth / 2);
+                nameText.setAttribute("y", nodeHeight / 2);
+                nameText.textContent = truncateText(node.data.name, 20);
+                nodeGroup.appendChild(nameText);
+                
+                // Add additional info based on options
+                let yPos = nodeHeight / 2 + 20;
+                const lineHeight = 14;
+
+                // Show title if option is checked
+                if (document.getElementById('showTitle') && document.getElementById('showTitle').checked && node.data.title) {
+                    const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    titleText.setAttribute("class", "person-info");
+                    titleText.setAttribute("x", nodeWidth / 2);
+                    titleText.setAttribute("y", yPos);
+                    titleText.textContent = truncateText(node.data.title, 16);
+                    nodeGroup.appendChild(titleText);
+                    yPos += lineHeight;
+                }
+
+                // Show birthday if option is checked
+                if (document.getElementById('showBirthday') && document.getElementById('showBirthday').checked && node.data.birthday) {
+                    const birthdayText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    birthdayText.setAttribute("class", "person-info");
+                    birthdayText.setAttribute("x", nodeWidth / 2);
+                    birthdayText.setAttribute("y", yPos);
+                    birthdayText.textContent = formatDate(node.data.birthday);
+                    nodeGroup.appendChild(birthdayText);
+                    yPos += lineHeight;
+                }
+
+                // Show death date if option is checked
+                if (document.getElementById('showDeathDate') && document.getElementById('showDeathDate').checked && node.data.date_of_death) {
+                    const deathText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    deathText.setAttribute("class", "person-info");
+                    deathText.setAttribute("x", nodeWidth / 2);
+                    deathText.setAttribute("y", yPos);
+                    deathText.textContent = "✝ " + formatDate(node.data.date_of_death);
+                    nodeGroup.appendChild(deathText);
+                    yPos += lineHeight;
+                }
+
+                // Show image if option is checked (simplified as text indicator)
+                if (document.getElementById('showImage') && document.getElementById('showImage').checked && node.data._image_list) {
+                    const imageText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    imageText.setAttribute("class", "person-info");
+                    imageText.setAttribute("x", nodeWidth / 2);
+                    imageText.setAttribute("y", yPos);
+                    imageText.textContent = "📷";
+                    nodeGroup.appendChild(imageText);
+                    yPos += lineHeight;
+                }
+                
+                newG.appendChild(nodeGroup);
+            });
+            
+            return newSVG;
+        }
+
+        function loadDataJSON() {
+            console.log("🔄 Đang load data.json...");
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', './data.json', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            familyData = data;
+                            console.log(`✅ Loaded ${data.length} family members from data.json`);
+                            
+                            // Debug thông tin root
+                            const rootNode = data.find(p => p.parent_id === 0);
+                            if (rootNode) {
+                                console.log(`📍 Root node: ${rootNode.name} (ID: ${rootNode.id})`);
+                                
+                                // Tìm tất cả con của root
+                                const rootChildren = data.filter(p => p.parent_id === rootNode.id);
+                                console.log(`👨‍👩‍👧‍👦 Root has ${rootChildren.length} direct children:`);
+                                rootChildren.forEach(child => {
+                                    console.log(`   - ${child.name} (ID: ${child.id}, Gender: ${child.gender})`);
+                                });
+                            }
+                            
+                            processData();
+                            updateDisplay();
+                            updateStats();
+                            centerTree();
+                            
+                            // Hiển thị thông báo thành công
+                            setTimeout(() => {
+                                console.log(`✅ Đã load thành công ${data.length} thành viên từ data.json!\n🌳 Có ${rootNode ? data.filter(p => p.parent_id === rootNode.id).length : 0} con của gốc cây.`);
+                            }, 500);
+                            
+                        } catch (error) {
+                            console.error("❌ JSON parsing error:", error);
+                            alert("❌ Lỗi parse JSON: " + error.message + "\n🔄 Đang load dữ liệu mẫu...");
+                            loadSampleData(); // Fallback to sample data
+                        }
+                    } else {
+                        console.error("❌ HTTP Error:", xhr.status);
+                        alert("🔄 Không thể load data.json, đang load dữ liệu mẫu...");
+                        loadSampleData(); // Fallback to sample data
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+    </script>
+</body>
+</html>

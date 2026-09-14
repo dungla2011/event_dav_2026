@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Dimension Test</title>
+    <style>
+        body { font-family: Arial; margin: 10px; }
+        iframe { width: 100%; height: 500px; border: 1px solid #ccc; }
+        .controls { margin: 10px 0; }
+        button { margin: 5px; padding: 10px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .results { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 10px 0; min-height: 100px; }
+        .status { font-weight: bold; }
+        .pass { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <h1>⚡ Quick Dimension Test</h1>
+    
+    <div class="controls">
+        <button onclick="quickTest()">🚀 Quick Test (Width 180→250)</button>
+        <button onclick="manualCheck()">👀 Manual Check Current State</button>
+        <button onclick="resetToDefault()">🔄 Reset to Default</button>
+    </div>
+    
+    <div id="results" class="results">
+        Click "Quick Test" để test dimension changes...
+    </div>
+    
+    <iframe id="app" src="doing.html"></iframe>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const className = type === 'pass' ? 'status pass' : 
+                            type === 'fail' ? 'status fail' : 
+                            type === 'info' ? '' : '';
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+            results.scrollTop = results.scrollTop;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function waitForApp() {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 20; // Limit attempts to prevent infinite loop
+                
+                const checkReady = () => {
+                    attempts++;
+                    const iframe = document.getElementById('app');
+                    try {
+                        if (iframe.contentDocument && iframe.contentWindow) {
+                            log(`📱 Attempt ${attempts}: document=${!!iframe.contentDocument}, window=${!!iframe.contentWindow}`);
+                            
+                            // Check if basic elements exist
+                            const doc = iframe.contentDocument;
+                            const hasWidthSlider = !!doc.getElementById('nodeWidth');
+                            const hasRects = doc.querySelectorAll('rect').length > 0;
+                            
+                            log(`📱 Elements check: nodeWidth=${hasWidthSlider}, rects=${hasRects}`);
+                            
+                            if (hasWidthSlider && hasRects) {
+                                resolve(iframe);
+                                return;
+                            }
+                            
+                            // If max attempts reached, resolve anyway for debugging
+                            if (attempts >= maxAttempts) {
+                                log(`⚠️ Max attempts reached, resolving for debugging...`);
+                                resolve(iframe);
+                                return;
+                            }
+                            
+                            setTimeout(checkReady, 200);
+                        } else {
+                            if (attempts >= maxAttempts) {
+                                resolve(null);
+                                return;
+                            }
+                            setTimeout(checkReady, 200);
+                        }
+                    } catch (e) {
+                        log(`⚠️ Error checking app readiness: ${e.message}`);
+                        if (attempts >= maxAttempts) {
+                            resolve(null);
+                            return;
+                        }
+                        setTimeout(checkReady, 200);
+                    }
+                };
+                checkReady();
+            });
+        }
+
+        async function quickTest() {
+            clearResults();
+            log('🔄 Starting quick dimension test...');
+            
+            try {
+                const iframe = await waitForApp();
+                const doc = iframe.contentDocument;
+                const win = iframe.contentWindow;
+                
+                // Wait a bit more for full initialization
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const widthSlider = doc.getElementById('nodeWidth');
+                const firstRect = doc.querySelector('rect:not(.link-line)');
+                
+                // Debug what elements we found
+                log(`🔍 Debug element search:`);
+                log(`  - nodeWidth slider found: ${!!widthSlider}`);
+                log(`  - firstRect found: ${!!firstRect}`);
+                log(`  - Total rects: ${doc.querySelectorAll('rect').length}`);
+                log(`  - All rect classes: ${Array.from(doc.querySelectorAll('rect')).map(r => r.className.baseVal || 'no-class').join(', ')}`);
+                
+                if (!widthSlider || !firstRect) {
+                    log('❌ Required elements not found!', 'fail');
+                    
+                    // Try alternative selectors
+                    const allSliders = doc.querySelectorAll('input[type="range"]');
+                    const allRects = doc.querySelectorAll('rect');
+                    
+                    log(`🔍 Alternative search:`);
+                    log(`  - Range inputs found: ${allSliders.length}`);
+                    log(`  - All rects found: ${allRects.length}`);
+                    
+                    if (allSliders.length > 0) {
+                        log(`  - Slider IDs: ${Array.from(allSliders).map(s => s.id || 'no-id').join(', ')}`);
+                    }
+                    
+                    if (allRects.length > 0) {
+                        log(`  - First rect: width=${allRects[0].getAttribute('width')}, height=${allRects[0].getAttribute('height')}`);
+                    }
+                    
+                    return;
+                }
+                
+                // Get initial state
+                const initialWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const initialSliderValue = parseInt(widthSlider.value || '0');
+                const initialGlobalWidth = win.defaultNodeWidth || 0;
+                
+                log(`📊 Initial state:`);
+                log(`  - Rect width: ${initialWidth}`);
+                log(`  - Slider value: ${initialSliderValue}`);
+                log(`  - Global variable: ${initialGlobalWidth}`);
+                
+                // Change width
+                const targetWidth = 250;
+                log(`🧪 Changing width to ${targetWidth}...`);
+                
+                widthSlider.value = targetWidth;
+                const inputEvent = new Event('input', { bubbles: true });
+                widthSlider.dispatchEvent(inputEvent);
+                
+                // Wait for update
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Check results
+                const newWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const newSliderValue = parseInt(widthSlider.value || '0');
+                const newGlobalWidth = win.defaultNodeWidth || 0;
+                
+                log(`📊 After change:`);
+                log(`  - Rect width: ${newWidth}`);
+                log(`  - Slider value: ${newSliderValue}`);
+                log(`  - Global variable: ${newGlobalWidth}`);
+                
+                // Validate results
+                if (newWidth === targetWidth) {
+                    log(`✅ SUCCESS! Width changed from ${initialWidth} to ${newWidth}`, 'pass');
+                } else {
+                    log(`❌ FAILED! Expected ${targetWidth}, got ${newWidth}`, 'fail');
+                    
+                    // Additional debugging
+                    log(`🔍 Debugging info:`);
+                    log(`  - Slider updated: ${newSliderValue === targetWidth ? 'YES' : 'NO'}`);
+                    log(`  - Global variable updated: ${newGlobalWidth === targetWidth ? 'YES' : 'NO'}`);
+                    log(`  - DOM rect updated: ${newWidth === targetWidth ? 'YES' : 'NO'}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'fail');
+                console.error('Test error:', error);
+            }
+        }
+
+        async function manualCheck() {
+            clearResults();
+            log('👀 Checking current state...');
+            
+            try {
+                const iframe = await waitForApp();
+                const doc = iframe.contentDocument;
+                const win = iframe.contentWindow;
+                
+                const widthSlider = doc.getElementById('widthSlider');
+                const heightSlider = doc.getElementById('heightSlider');
+                const firstRect = doc.querySelector('rect:not(.link-line)');
+                
+                if (!widthSlider || !heightSlider || !firstRect) {
+                    log('❌ Required elements not found!', 'fail');
+                    return;
+                }
+                
+                const rectWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const rectHeight = parseInt(firstRect.getAttribute('height') || '0');
+                const sliderWidth = parseInt(widthSlider.value || '0');
+                const sliderHeight = parseInt(heightSlider.value || '0');
+                const globalWidth = win.defaultNodeWidth || 0;
+                const globalHeight = win.defaultNodeHeight || 0;
+                
+                log(`📊 Current state:`);
+                log(`  - Rect: ${rectWidth} x ${rectHeight}`);
+                log(`  - Sliders: ${sliderWidth} x ${sliderHeight}`);
+                log(`  - Global variables: ${globalWidth} x ${globalHeight}`);
+                
+                log(`🔍 Sync status:`);
+                log(`  - Width sync: ${rectWidth === sliderWidth && sliderWidth === globalWidth ? '✅ GOOD' : '❌ OUT OF SYNC'}`);
+                log(`  - Height sync: ${rectHeight === sliderHeight && sliderHeight === globalHeight ? '✅ GOOD' : '❌ OUT OF SYNC'}`);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'fail');
+            }
+        }
+
+        async function resetToDefault() {
+            clearResults();
+            log('🔄 Resetting to default values...');
+            
+            try {
+                const iframe = await waitForApp();
+                const doc = iframe.contentDocument;
+                
+                const widthSlider = doc.getElementById('widthSlider');
+                const heightSlider = doc.getElementById('heightSlider');
+                
+                if (!widthSlider || !heightSlider) {
+                    log('❌ Sliders not found!', 'fail');
+                    return;
+                }
+                
+                widthSlider.value = 180;
+                heightSlider.value = 100;
+                
+                widthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                heightSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                log('✅ Reset completed');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'fail');
+            }
+        }
+    </script>
+</body>
+</html>

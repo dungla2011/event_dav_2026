@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Dimension Test - Fixed</title>
+    <style>
+        body { font-family: Arial; margin: 10px; }
+        iframe { width: 100%; height: 500px; border: 1px solid #ccc; }
+        .controls { margin: 10px 0; }
+        button { margin: 5px; padding: 10px 15px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .results { background: #f9f9f9; padding: 15px; border-radius: 5px; margin: 10px 0; min-height: 100px; }
+        .status { font-weight: bold; }
+        .pass { color: green; }
+        .fail { color: red; }
+    </style>
+</head>
+<body>
+    <h1>⚡ Quick Dimension Test - Fixed</h1>
+    
+    <div class="controls">
+        <button onclick="quickTest()">🚀 Quick Test (Width 180→250)</button>
+        <button onclick="testActualDimensionChange()">⚡ Test Real Dimension Change</button>
+        <button onclick="manualCheck()">👀 Manual Check Current State</button>
+        <button onclick="debugD3Selection()">🔍 Debug D3 Selection</button>
+        <button onclick="resetToDefault()">🔄 Reset to Default</button>
+    </div>
+    
+    <div id="results" class="results">
+        Click "Quick Test" để test dimension changes...
+    </div>
+    
+    <iframe id="app" src="doing.html"></iframe>
+
+    <script>
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const className = type === 'pass' ? 'status pass' : 
+                            type === 'fail' ? 'status fail' : 
+                            type === 'info' ? '' : '';
+            results.innerHTML += `<div class="${className}">${message}</div>`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function waitForApp() {
+            return new Promise((resolve) => {
+                let attempts = 0;
+                const maxAttempts = 20;
+                
+                const checkReady = () => {
+                    attempts++;
+                    const iframe = document.getElementById('app');
+                    try {
+                        if (iframe.contentDocument && iframe.contentWindow) {
+                            log(`📱 Attempt ${attempts}: Checking elements...`);
+                            
+                            const doc = iframe.contentDocument;
+                            const hasNodeWidth = !!doc.getElementById('nodeWidth');
+                            const hasRects = doc.querySelectorAll('rect').length > 0;
+                            
+                            log(`📱 Elements: nodeWidth=${hasNodeWidth}, rects=${hasRects}`);
+                            
+                            if (hasNodeWidth && hasRects) {
+                                log(`✅ App ready after ${attempts} attempts`);
+                                resolve(iframe);
+                                return;
+                            }
+                            
+                            if (attempts >= maxAttempts) {
+                                log(`⚠️ Max attempts reached, proceeding anyway...`);
+                                resolve(iframe);
+                                return;
+                            }
+                            
+                            setTimeout(checkReady, 300);
+                        } else {
+                            if (attempts >= maxAttempts) {
+                                resolve(null);
+                                return;
+                            }
+                            setTimeout(checkReady, 300);
+                        }
+                    } catch (e) {
+                        log(`⚠️ Error: ${e.message}`);
+                        if (attempts >= maxAttempts) {
+                            resolve(null);
+                            return;
+                        }
+                        setTimeout(checkReady, 300);
+                    }
+                };
+                checkReady();
+            });
+        }
+
+        async function quickTest() {
+            clearResults();
+            log('🔄 Starting quick dimension test...');
+            
+            try {
+                const iframe = await waitForApp();
+                if (!iframe) {
+                    log('❌ Failed to load app', 'fail');
+                    return;
+                }
+                
+                const doc = iframe.contentDocument;
+                const win = iframe.contentWindow;
+                
+                // Find elements with correct IDs
+                const nodeWidthSlider = doc.getElementById('nodeWidth');
+                const firstRect = doc.querySelector('rect:not(.link-line)');
+                
+                // Debug what elements we found
+                log(`🔍 Element search results:`);
+                log(`  - nodeWidth slider: ${!!nodeWidthSlider}`);
+                log(`  - firstRect: ${!!firstRect}`);
+                log(`  - Total rects: ${doc.querySelectorAll('rect').length}`);
+                
+                if (!nodeWidthSlider || !firstRect) {
+                    log('❌ Required elements not found!', 'fail');
+                    
+                    // Debug all available sliders
+                    const allSliders = doc.querySelectorAll('input[type="range"]');
+                    log(`🔍 Available sliders: ${allSliders.length}`);
+                    Array.from(allSliders).forEach((slider, i) => {
+                        log(`  ${i+1}. ID: ${slider.id || 'no-id'}, value: ${slider.value}`);
+                    });
+                    
+                    return;
+                }
+                
+                // Get initial state
+                const initialWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const initialSliderValue = parseInt(nodeWidthSlider.value || '0');
+                const initialGlobalWidth = win.defaultNodeWidth || 0;
+                
+                log(`📊 Initial state:`);
+                log(`  - Rect width: ${initialWidth}`);
+                log(`  - Slider value: ${initialSliderValue}`);
+                log(`  - Global variable: ${initialGlobalWidth}`);
+                
+                // Change width
+                const targetWidth = 250;
+                log(`🧪 Changing width to ${targetWidth}...`);
+                
+                nodeWidthSlider.value = targetWidth;
+                const inputEvent = new Event('input', { bubbles: true });
+                nodeWidthSlider.dispatchEvent(inputEvent);
+                
+                // Wait for update
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Check results
+                const newWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const newSliderValue = parseInt(nodeWidthSlider.value || '0');
+                const newGlobalWidth = win.defaultNodeWidth || 0;
+                
+                log(`📊 After change:`);
+                log(`  - Rect width: ${newWidth}`);
+                log(`  - Slider value: ${newSliderValue}`);
+                log(`  - Global variable: ${newGlobalWidth}`);
+                
+                // Validate results
+                if (newWidth === targetWidth) {
+                    log(`✅ SUCCESS! Width changed from ${initialWidth} to ${newWidth}`, 'pass');
+                } else {
+                    log(`❌ FAILED! Expected ${targetWidth}, got ${newWidth}`, 'fail');
+                    
+                    // Additional debugging
+                    log(`🔍 Debugging info:`);
+                    log(`  - Slider updated: ${newSliderValue === targetWidth ? 'YES' : 'NO'}`);
+                    log(`  - Global variable updated: ${newGlobalWidth === targetWidth ? 'YES' : 'NO'}`);
+                    log(`  - DOM rect updated: ${newWidth === targetWidth ? 'YES' : 'NO'}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'fail');
+                console.error('Test error:', error);
+            }
+        }
+
+        async function manualCheck() {
+            clearResults();
+            log('👀 Checking current state...');
+            
+            try {
+                const iframe = await waitForApp();
+                if (!iframe) {
+                    log('❌ Failed to load app', 'fail');
+                    return;
+                }
+                
+                const doc = iframe.contentDocument;
+                const win = iframe.contentWindow;
+                
+                const nodeWidthSlider = doc.getElementById('nodeWidth');
+                const nodeHeightSlider = doc.getElementById('nodeHeight');
+                const firstRect = doc.querySelector('rect:not(.link-line)');
+                
+                if (!nodeWidthSlider || !nodeHeightSlider || !firstRect) {
+                    log('❌ Required elements not found!', 'fail');
+                    return;
+                }
+                
+                const rectWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const rectHeight = parseInt(firstRect.getAttribute('height') || '0');
+                const sliderWidth = parseInt(nodeWidthSlider.value || '0');
+                const sliderHeight = parseInt(nodeHeightSlider.value || '0');
+                const globalWidth = win.defaultNodeWidth || 0;
+                const globalHeight = win.defaultNodeHeight || 0;
+                
+                log(`📊 Current state:`);
+                log(`  - Rect: ${rectWidth} x ${rectHeight}`);
+                log(`  - Sliders: ${sliderWidth} x ${sliderHeight}`);
+                log(`  - Global variables: ${globalWidth} x ${globalHeight}`);
+                
+                log(`🔍 Sync status:`);
+                log(`  - Width sync: ${rectWidth === sliderWidth && sliderWidth === globalWidth ? '✅ GOOD' : '❌ OUT OF SYNC'}`);
+                log(`  - Height sync: ${rectHeight === sliderHeight && sliderHeight === globalHeight ? '✅ GOOD' : '❌ OUT OF SYNC'}`);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'fail');
+            }
+        }
+
+        async function testActualDimensionChange() {
+            clearResults();
+            log('⚡ Testing ACTUAL dimension change...');
+            
+            try {
+                const iframe = await waitForApp();
+                if (!iframe) {
+                    log('❌ Failed to load app', 'fail');
+                    return;
+                }
+                
+                const doc = iframe.contentDocument;
+                const win = iframe.contentWindow;
+                
+                const nodeWidthSlider = doc.getElementById('nodeWidth');
+                const firstRect = doc.querySelector('rect:not(.link-line)');
+                
+                if (!nodeWidthSlider || !firstRect) {
+                    log('❌ Required elements not found!', 'fail');
+                    return;
+                }
+                
+                // Get initial state
+                const initialWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const initialGlobal = win.defaultNodeWidth || 0;
+                
+                log(`📊 Initial state:`);
+                log(`  - Rect width: ${initialWidth}`);
+                log(`  - Global variable: ${initialGlobal}`);
+                log(`  - Slider value: ${nodeWidthSlider.value}`);
+                
+                // Test 1: Change to 220
+                log(`🧪 Test 1: Changing width to 220...`);
+                nodeWidthSlider.value = 220;
+                nodeWidthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const test1Width = parseInt(firstRect.getAttribute('width') || '0');
+                const test1Global = win.defaultNodeWidth || 0;
+                
+                log(`📊 After changing to 220:`);
+                log(`  - Rect width: ${test1Width}`);
+                log(`  - Global variable: ${test1Global}`);
+                log(`  - Test 1 result: ${test1Width === 220 ? '✅ PASS' : '❌ FAIL'}`);
+                
+                // Test 2: Change to 300
+                log(`🧪 Test 2: Changing width to 300...`);
+                nodeWidthSlider.value = 300;
+                nodeWidthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const test2Width = parseInt(firstRect.getAttribute('width') || '0');
+                const test2Global = win.defaultNodeWidth || 0;
+                
+                log(`📊 After changing to 300:`);
+                log(`  - Rect width: ${test2Width}`);
+                log(`  - Global variable: ${test2Global}`);
+                log(`  - Test 2 result: ${test2Width === 300 ? '✅ PASS' : '❌ FAIL'}`);
+                
+                // Test 3: Change back to 180
+                log(`🧪 Test 3: Changing back to 180...`);
+                nodeWidthSlider.value = 180;
+                nodeWidthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                const test3Width = parseInt(firstRect.getAttribute('width') || '0');
+                const test3Global = win.defaultNodeWidth || 0;
+                
+                log(`📊 After changing back to 180:`);
+                log(`  - Rect width: ${test3Width}`);
+                log(`  - Global variable: ${test3Global}`);
+                log(`  - Test 3 result: ${test3Width === 180 ? '✅ PASS' : '❌ FAIL'}`);
+                
+                // Final result
+                const allPassed = test1Width === 220 && test2Width === 300 && test3Width === 180;
+                log(`🏁 FINAL RESULT: ${allPassed ? '✅ ALL TESTS PASSED!' : '❌ SOME TESTS FAILED'}`, allPassed ? 'pass' : 'fail');
+                
+                if (allPassed) {
+                    log(`🎉 Dimension changes are working perfectly!`, 'pass');
+                } else {
+                    log(`🔧 Need to investigate further...`, 'fail');
+                }
+                
+            } catch (error) {
+                log(`❌ Test error: ${error.message}`, 'fail');
+                console.error('Test error:', error);
+            }
+        }
+
+        async function debugD3Selection() {
+            clearResults();
+            log('🔍 Debugging D3 selection and update process...');
+            
+            try {
+                const iframe = await waitForApp();
+                if (!iframe) {
+                    log('❌ Failed to load app', 'fail');
+                    return;
+                }
+                
+                const doc = iframe.contentDocument;
+                const win = iframe.contentWindow;
+                
+                // Check current state
+                const firstRect = doc.querySelector('rect:not(.link-line)');
+                const currentWidth = parseInt(firstRect.getAttribute('width') || '0');
+                const globalWidth = win.defaultNodeWidth || 0;
+                
+                log(`📊 Before manual updateDisplay():`);
+                log(`  - Current rect width: ${currentWidth}`);
+                log(`  - Global variable: ${globalWidth}`);
+                
+                // Manually call updateDisplay and capture console output
+                log(`🔧 Calling updateDisplay() manually...`);
+                
+                // Redirect console.log temporarily to capture D3 debug output
+                const originalLog = win.console.log;
+                const capturedLogs = [];
+                win.console.log = function(...args) {
+                    capturedLogs.push(args.join(' '));
+                    originalLog.apply(win.console, args);
+                };
+                
+                // Call updateDisplay
+                win.updateDisplay();
+                
+                // Restore console.log
+                win.console.log = originalLog;
+                
+                // Wait a moment for DOM updates
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // Check state after update
+                const newWidth = parseInt(firstRect.getAttribute('width') || '0');
+                
+                log(`📊 After manual updateDisplay():`);
+                log(`  - New rect width: ${newWidth}`);
+                log(`  - Change occurred: ${newWidth !== currentWidth ? 'YES' : 'NO'}`);
+                
+                log(`📝 Captured console output:`);
+                capturedLogs.forEach(logLine => {
+                    log(`  ${logLine}`);
+                });
+                
+                // Check level settings in detail
+                log(`🔍 Investigating level settings...`);
+                log(`📋 levelSettings object:`, win.levelSettings);
+                log(`📋 levelSettings type:`, typeof win.levelSettings);
+                log(`📋 levelSettings[0]:`, win.levelSettings ? win.levelSettings[0] : 'levelSettings is null/undefined');
+                log(`📋 levelSettings[0] type:`, typeof (win.levelSettings ? win.levelSettings[0] : 'n/a'));
+                
+                if (win.levelSettings && win.levelSettings[0]) {
+                    const level0Settings = win.levelSettings[0];
+                    log(`📋 Level 0 settings found:`);
+                    log(`  - width: ${level0Settings.width || 'undefined'}`);
+                    log(`  - height: ${level0Settings.height || 'undefined'}`);
+                    log(`  - Object keys: ${Object.keys(level0Settings)}`);
+                    log(`  - Full object: ${JSON.stringify(level0Settings, null, 2)}`);
+                } else {
+                    log(`📋 No level 0 specific settings found`);
+                }
+                
+                // Test getLevelSettings directly
+                log(`🧪 Testing getLevelSettings(0) directly...`);
+                const testSettings = win.getLevelSettings(0);
+                log(`  - Returned width: ${testSettings.width}`);
+                log(`  - Returned height: ${testSettings.height}`);
+                log(`  - Should be global width (${globalWidth}): ${testSettings.width === globalWidth ? 'YES' : 'NO'}`);
+                
+                // Check localStorage for level settings
+                log(`💾 Checking localStorage for level settings...`);
+                const levelConfig = localStorage.getItem('familyTree_levelSettings');
+                log(`  - Raw localStorage: ${levelConfig}`);
+                if (levelConfig) {
+                    try {
+                        const parsed = JSON.parse(levelConfig);
+                        log(`  - Parsed level settings:`, parsed);
+                        if (parsed && parsed[0]) {
+                            log(`  - Level 0 in localStorage: width=${parsed[0].width}, height=${parsed[0].height}`);
+                        }
+                    } catch (e) {
+                        log(`  - Failed to parse: ${e.message}`);
+                    }
+                }
+                
+                // Check if we can clear level settings
+                log(`🧹 Testing clearing level settings...`);
+                if (win.levelSettings) {
+                    const originalLevel0 = win.levelSettings[0];
+                    win.levelSettings[0] = undefined; // Clear level 0 settings
+                    
+                    log(`  - Cleared level 0 settings`);
+                    
+                    // Call updateDisplay again
+                    win.updateDisplay();
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    
+                    const clearedWidth = parseInt(firstRect.getAttribute('width') || '0');
+                    log(`  - Width after clearing level settings: ${clearedWidth}`);
+                    log(`  - Now uses global setting: ${clearedWidth === globalWidth ? 'YES' : 'NO'}`);
+                    
+                    // Restore original settings for next test
+                    win.levelSettings[0] = originalLevel0;
+                }
+                
+                // Try direct D3 approach
+                log(`🧪 Testing direct D3 attribute setting...`);
+                const d3 = win.d3;
+                if (d3) {
+                    const svg = d3.select(doc.querySelector('#tree-svg'));
+                    const rects = svg.selectAll('rect:not(.link-line)');
+                    log(`  - Found ${rects.size()} rects via D3`);
+                    
+                    // Try to set width directly
+                    rects.attr('width', 300);
+                    
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    const directTestWidth = parseInt(firstRect.getAttribute('width') || '0');
+                    log(`  - After direct D3 set to 300: ${directTestWidth}`);
+                    log(`  - Direct D3 worked: ${directTestWidth === 300 ? 'YES' : 'NO'}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Debug error: ${error.message}`, 'fail');
+                console.error('Debug error:', error);
+            }
+        }
+
+        async function resetToDefault() {
+            clearResults();
+            log('🔄 Resetting to default values...');
+            
+            try {
+                const iframe = await waitForApp();
+                if (!iframe) {
+                    log('❌ Failed to load app', 'fail');
+                    return;
+                }
+                
+                const doc = iframe.contentDocument;
+                
+                const nodeWidthSlider = doc.getElementById('nodeWidth');
+                const nodeHeightSlider = doc.getElementById('nodeHeight');
+                
+                if (!nodeWidthSlider || !nodeHeightSlider) {
+                    log('❌ Sliders not found!', 'fail');
+                    return;
+                }
+                
+                nodeWidthSlider.value = 180;
+                nodeHeightSlider.value = 100;
+                
+                nodeWidthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                nodeHeightSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                log('✅ Reset completed');
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'fail');
+            }
+        }
+    </script>
+</body>
+</html>

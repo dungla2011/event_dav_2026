@@ -1,0 +1,3536 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cây Gia Phả - D3.js Full Export</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        .header {
+            background: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 24px;
+        }
+        
+        .controls {
+            /* margin-top: 15px; */
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+        
+        .main-content {
+            display: flex;
+            height: calc(100vh - 120px);
+        }
+        
+        .sidebar {
+            width: 300px;
+            background: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .tree-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #tree-svg {
+            width: 100%;
+            height: 100%;
+            background: #fafafa;
+        }
+        
+        .person-node {
+            cursor: pointer;
+            transition: filter 0.2s ease;
+        }
+        
+        .person-node:hover {
+            filter: brightness(1.1);
+        }
+        
+        .person-node.selected {
+            stroke: #e74c3c;
+            stroke-width: 3px;
+        }
+        
+        .person-rect {
+            rx: 8;
+            ry: 8;
+            fill: white;
+            stroke-width: 3;
+        }
+        
+        .person-rect.male {
+            stroke: #3498db;
+        }
+        
+        .person-rect.female {
+            stroke: #e91e63;
+        }
+        
+        .person-rect.unknown {
+            stroke: #95a5a6;
+        }
+        
+        .person-rect.deceased {
+            stroke: #7f8c8d;
+            stroke-dasharray: 8,4;
+        }
+        
+        .person-rect.in-law {
+            stroke: #f39c12;
+            stroke-width: 4;
+        }
+        
+        .person-rect.second-marriage-child {
+            stroke: #9b59b6;
+            stroke-width: 4;
+        }
+        
+        .person-rect.level-highlighted {
+            stroke: #ff0000 !important;
+            stroke-width: 4px !important;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { stroke-width: 4px; }
+            50% { stroke-width: 6px; }
+            100% { stroke-width: 4px; }
+        }
+        
+        .person-name {
+            fill: #2c3e50;
+            font-weight: bold;
+            font-size: 13px;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        
+        .person-info {
+            fill: #7f8c8d;
+            font-size: 11px;
+            text-anchor: middle;
+        }
+        
+        .tree-link {
+            fill: none;
+            stroke: #7f8c8d;
+            stroke-width: 2;
+        }
+        
+        .highlight-link {
+            fill: none;
+            stroke: #ff0000;
+            stroke-width: 4;
+            opacity: 0.8;
+            pointer-events: none;
+        }
+        
+        .marriage-link {
+            stroke: #e74c3c;
+            stroke-width: 3;
+            stroke-dasharray: 8,4;
+        }
+        
+        .marriage-link.second-marriage {
+            stroke: #9b59b6;
+            stroke-width: 4;
+            stroke-dasharray: 12,6;
+        }
+        
+        .option-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .option-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .option-item label {
+            font-size: 14px;
+            color: #34495e;
+        }
+        
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #3498db;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .stats {
+            background: #e8f4fd;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="controls">
+            <button onclick="zoomIn()">🔍 Phóng to</button>
+            <button onclick="zoomOut()">🔍 Thu nhỏ</button>
+            <button onclick="resetZoom()">🔄 Reset</button>
+            <button onclick="centerTree()">🎯 Căn giữa</button>
+            <button onclick="exportFullSVG()">💾 Xuất SVG đầy đủ</button>
+            <button onclick="exportDrawIOSVG()" style="background: #ff6b35;">🎨 Xuất SVG cho Draw.io</button>
+            <button onclick="exportCorelDrawSVG()" style="background: #9b59b6;">🎭 Xuất SVG cho CorelDRAW</button>
+            <button onclick="exportDrawIOXML()" style="background: #e67e22;">📐 Xuất Draw.io XML</button>
+            <button onclick="loadDataJSON()">🔄 Load data.json</button>
+            <button onclick="exportConfig()" style="background: #27ae60;">📤 Xuất Config</button>
+            <button onclick="importConfig()" style="background: #3498db;">📥 Nhập Config</button>
+            <button onclick="clearAllConfig()" style="background: #e74c3c;">🗑️ Xóa Config</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <input type="text" class="search-box" placeholder="🔍 Tìm kiếm thành viên..." id="searchInput">
+            
+            <div class="stats" id="treeStats">
+                <strong>📊 Thống kê:</strong><br>
+                Tổng: <span id="totalCount">0</span> người<br>
+                Nam: <span id="maleCount">0</span> | Nữ: <span id="femaleCount">0</span><br>
+                Đã mất: <span id="deceasedCount">0</span>
+            </div>
+
+            <div class="option-group">
+                <h3>⚙️ Tùy chọn hiển thị</h3>
+                <div class="option-item">
+                    <input type="checkbox" id="showTitle" checked>
+                    <label for="showTitle">Hiển thị chức danh</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showBirthday" checked>
+                    <label for="showBirthday">Hiển thị ngày sinh</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showImage">
+                    <label for="showImage">Hiển thị ảnh</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showDeathDate">
+                    <label for="showDeathDate">Hiển thị ngày mất</label>
+                </div>
+                <div class="option-item">
+                    <input type="checkbox" id="showMarriageLinks" checked>
+                    <label for="showMarriageLinks">Hiển thị quan hệ hôn nhân</label>
+                </div>
+                <div class="option-item">
+                    <label for="nodeSpacing">Khoảng cách node:</label>
+                    <input type="range" id="nodeSpacing" min="10" max="100" value="20" style="width: 100px;">
+                    <span id="nodeSpacingValue">20px</span>
+                </div>
+                <div class="option-item">
+                    <label for="levelSpacing">Khoảng cách tầng:</label>
+                    <input type="range" id="levelSpacing" min="100" max="250" value="150" style="width: 100px;">
+                    <span id="levelSpacingValue">150px</span>
+                </div>
+                <div class="option-item">
+                    <label for="textRotation">Xoay chữ:</label>
+                    <select id="textRotation" style="width: 120px; padding: 5px;">
+                        <option value="horizontal">Nằm ngang</option>
+                        <option value="vertical-top">Dọc xuống</option>
+                        <option value="vertical-bottom">Dọc lên</option>
+                    </select>
+                </div>
+                <div class="option-item">
+                    <label for="nodeWidth">Chiều rộng node:</label>
+                    <input type="number" id="nodeWidth" min="50" max="500" value="200" style="width: 80px; padding: 5px;">
+                    <span>px</span>
+                </div>
+                <div class="option-item">
+                    <label for="nodeHeight">Chiều cao node:</label>
+                    <input type="number" id="nodeHeight" min="50" max="500" value="100" style="width: 80px; padding: 5px;">
+                    <span>px</span>
+                </div>
+            </div>
+
+            <div class="option-group">
+                <h3>🎯 Chọn hàng để cấu hình</h3>
+                <div class="option-item">
+                    <label for="levelSelector">Chọn hàng:</label>
+                    <select id="levelSelector" style="width: 100%; padding: 5px; margin-top: 5px;">
+                        <option value="-1">-- Chọn hàng --</option>
+                    </select>
+                </div>
+                
+                <div id="levelControls" style="display: none; margin-top: 15px;">
+                    <div class="option-item">
+                        <label for="levelWidth">Rộng:</label>
+                        <input type="number" id="levelWidth" min="50" max="300" step="10" style="width: 60px;" value="200">
+                        <span>px</span>
+                        &nbsp;
+                        <label for="levelHeight">Cao:</label>
+                        <input type="number" id="levelHeight" min="50" max="200" step="10" style="width: 60px;" value="100">
+                        <span>px</span>
+
+                    </div>
+                    <div class="option-item">
+                        <label for="levelNodeSpacing">Khoảng cách:</label>
+                        <input type="number" id="levelNodeSpacing" min="5" max="100" step="5" value="20" style="width: 60px;">
+                        <span>px</span>
+                        <button id="resetSpaceLevel" style="margin-left: 5px; padding: 2px 6px; font-size: 10px; background: #95a5a6; color: white; border: none; border-radius: 3px; cursor: pointer;" title="Reset về spacing mặc định">🔄</button>
+                    </div>
+                    
+                    <div class="option-item">
+                        <label for="levelTextRotation">Xoay chữ hàng:</label>
+                        <select id="levelTextRotation" style="width: 100%; padding: 5px; margin-top: 3px;">
+                            <option value="">-- Dùng global --</option>
+                            <option value="horizontal">Nằm ngang</option>
+                            <option value="vertical-top">Dọc xuống</option>
+                            <option value="vertical-bottom">Dọc lên</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin: 10px 0; padding: 8px; background-color: #f0f8ff; border-radius: 4px;">
+                        <div style="font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #2c3e50;">🎛️ Tùy chọn hiển thị riêng:</div>
+                        
+                        <div class="option-item" style="font-size: 11px;">
+                            <input type="checkbox" id="levelShowTitle" style="margin-right: 5px;">
+                            <label for="levelShowTitle">Hiển thị chức danh</label>
+                        </div>
+                        
+                        <div class="option-item" style="font-size: 11px;">
+                            <input type="checkbox" id="levelShowBirthday" style="margin-right: 5px;">
+                            <label for="levelShowBirthday">Hiển thị ngày sinh</label>
+                        </div>
+                        
+                        <div class="option-item" style="font-size: 11px;">
+                            <input type="checkbox" id="levelShowDeathDate" style="margin-right: 5px;">
+                            <label for="levelShowDeathDate">Hiển thị ngày mất</label>
+                        </div>
+                        
+                        <div class="option-item" style="font-size: 11px;">
+                            <input type="checkbox" id="levelShowImage" style="margin-right: 5px;">
+                            <label for="levelShowImage">Hiển thị ảnh</label>
+                        </div>
+                        
+                        <div style="font-size: 10px; color: #666; margin-top: 5px; font-style: italic;">
+                            * Ưu tiên hơn tùy chọn global
+                        </div>
+                    </div>
+                    
+                    <div class="option-item" style="font-size: 11px; color: #666; text-align: center;">
+                        💡 Thay đổi ngay lập tức
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tree-container">
+            <svg id="tree-svg"></svg>
+        </div>
+        
+        <!-- Simple Tooltip - moved outside tree-container -->
+        <div id="simple-tooltip" style="position: absolute; background: #f8f9fa; color: #333; padding: 6px 12px; border-radius: 4px; font-size: 12px; pointer-events: none; z-index: 9999; display: none; border: 1px solid #ddd; box-shadow: 0 2px 8px rgba(0,0,0,0.2); white-space: nowrap; max-width: none;"></div>
+    </div>
+
+    <input type="file" id="fileInput" style="display: none;" accept=".json">
+    <input type="file" id="configFileInput" style="display: none;" accept=".json">
+
+    <script>
+        // Global variables
+        let familyData = [];
+        let svg, g, root;
+        let width, height;
+        let zoom;
+
+        // Node dimensions và spacing
+        let nodeWidth = 200;
+        let nodeHeight = 100;
+        let minNodeSpacing = 20;
+        let levelSpacing = 150;
+        const boundY = 20; // boundary offset khoảng cách tối thiểu trên dưới với đường parent path ngang và 1 node
+
+
+        // Level management
+        let levelSettings = {}; // Store level configurations: { level: { orientation, width, height, spacing, displayOptions: { showTitle, showBirthday, showDeathDate, showImage } } }
+        let selectedLevel = -1; // Currently selected level for highlighting
+        
+        // Global array để tracking horizontal lines
+        let ARRAY_H_LINE = []; // Array chứa các đường ngang: {childId, deep, pidx, y, x1, x2}
+
+        // Configuration storage keys
+        const CONFIG_KEYS = {
+            GLOBAL: 'familyTree_globalConfig',
+            LEVELS: 'familyTree_levelSettings'
+        };
+
+        // Configuration management functions
+        function saveGlobalConfig() {
+            const currentRotation = document.getElementById('textRotation')?.value || 'horizontal';
+            const currentWidth = parseInt(document.getElementById('nodeWidth')?.value) || 180;
+            const currentHeight = parseInt(document.getElementById('nodeHeight')?.value) || 100;
+            
+            // Load existing orientation dimensions or create defaults
+            let orientationDimensions = {
+                horizontal: { width: 200, height: 100 },
+                vertical: { width: 100, height: 200 }
+            };
+            
+            // Try to load existing orientation dimensions from storage
+            try {
+                const saved = localStorage.getItem(CONFIG_KEYS.GLOBAL);
+                if (saved) {
+                    const existingConfig = JSON.parse(saved);
+                    if (existingConfig.orientationDimensions) {
+                        orientationDimensions = existingConfig.orientationDimensions;
+                    }
+                }
+            } catch (error) {
+                console.log('Using default orientation dimensions');
+            }
+            
+            // Update current orientation with current input values
+            const orientationKey = (currentRotation === 'vertical-top' || currentRotation === 'vertical-bottom') ? 'vertical' : currentRotation;
+            orientationDimensions[orientationKey] = {
+                width: currentWidth,
+                height: currentHeight
+            };
+            
+            const config = {
+                showTitle: document.getElementById('showTitle')?.checked || false,
+                showBirthday: document.getElementById('showBirthday')?.checked || false,
+                showImage: document.getElementById('showImage')?.checked || false,
+                showDeathDate: document.getElementById('showDeathDate')?.checked || false,
+                showMarriageLinks: document.getElementById('showMarriageLinks')?.checked || false,
+                nodeSpacing: minNodeSpacing,
+                levelSpacing: levelSpacing,
+                textRotation: currentRotation,
+                nodeWidth: currentWidth,
+                nodeHeight: currentHeight,
+                // Store orientation-aware dimensions
+                orientationDimensions: orientationDimensions
+            };
+            
+            try {
+                localStorage.setItem(CONFIG_KEYS.GLOBAL, JSON.stringify(config));
+                console.log('💾 Global config saved:', config);
+            } catch (error) {
+                console.error('❌ Failed to save global config:', error);
+                // TODO: Replace with API call
+                // saveGlobalConfigAPI(config);
+            }
+        }
+
+        function loadGlobalConfig() {
+            try {
+                const saved = localStorage.getItem(CONFIG_KEYS.GLOBAL);
+                if (saved) {
+                    const config = JSON.parse(saved);
+                    
+                    // Apply global config to UI
+                    if (document.getElementById('showTitle')) document.getElementById('showTitle').checked = config.showTitle;
+                    if (document.getElementById('showBirthday')) document.getElementById('showBirthday').checked = config.showBirthday;
+                    if (document.getElementById('showImage')) document.getElementById('showImage').checked = config.showImage;
+                    if (document.getElementById('showDeathDate')) document.getElementById('showDeathDate').checked = config.showDeathDate;
+                    if (document.getElementById('showMarriageLinks')) document.getElementById('showMarriageLinks').checked = config.showMarriageLinks;
+                    
+                    // Apply spacing
+                    minNodeSpacing = config.nodeSpacing || 20;
+                    levelSpacing = config.levelSpacing || 150;
+                    
+                    if (document.getElementById('nodeSpacing')) {
+                        document.getElementById('nodeSpacing').value = minNodeSpacing;
+                        document.getElementById('nodeSpacingValue').textContent = minNodeSpacing + 'px';
+                    }
+                    
+                    if (document.getElementById('levelSpacing')) {
+                        document.getElementById('levelSpacing').value = levelSpacing;
+                        document.getElementById('levelSpacingValue').textContent = levelSpacing + 'px';
+                    }
+                    
+                    // Apply text rotation and set previous value
+                    const textRotation = config.textRotation || 'horizontal';
+                    if (document.getElementById('textRotation')) {
+                        document.getElementById('textRotation').value = textRotation;
+                        document.getElementById('textRotation').dataset.previousValue = textRotation;
+                    }
+                    
+                    // Apply node dimensions to UI inputs (load saved values)
+                    const savedNodeWidth = config.nodeWidth || 180;
+                    const savedNodeHeight = config.nodeHeight || 100;
+                    if (document.getElementById('nodeWidth')) {
+                        document.getElementById('nodeWidth').value = savedNodeWidth;
+                    }
+                    if (document.getElementById('nodeHeight')) {
+                        document.getElementById('nodeHeight').value = savedNodeHeight;
+                    }
+                    
+                    // Load orientation-specific dimensions for current rotation
+                    const orientationKey = (textRotation === 'vertical-top' || textRotation === 'vertical-bottom') ? 'vertical' : textRotation;
+                    if (config.orientationDimensions && config.orientationDimensions[orientationKey]) {
+                        const dimensions = config.orientationDimensions[orientationKey];
+                        nodeWidth = dimensions.width;
+                        nodeHeight = dimensions.height;
+                        
+                        // Update UI inputs with orientation-specific dimensions
+                        if (document.getElementById('nodeWidth')) {
+                            document.getElementById('nodeWidth').value = dimensions.width;
+                        }
+                        if (document.getElementById('nodeHeight')) {
+                            document.getElementById('nodeHeight').value = dimensions.height;
+                        }
+                        
+                        console.log(`✅ Loaded global dimensions for ${textRotation} (key: ${orientationKey}):`, dimensions);
+                    } else {
+                        // Apply defaults based on rotation or saved values
+                        if (textRotation === 'vertical-top' || textRotation === 'vertical-bottom') {
+                            nodeWidth = 100;
+                            nodeHeight = 200;
+                        } else {
+                            nodeWidth = savedNodeWidth;
+                            nodeHeight = savedNodeHeight;
+                        }
+                        
+                        // Update UI inputs with applied dimensions
+                        if (document.getElementById('nodeWidth')) {
+                            document.getElementById('nodeWidth').value = nodeWidth;
+                        }
+                        if (document.getElementById('nodeHeight')) {
+                            document.getElementById('nodeHeight').value = nodeHeight;
+                        }
+                        
+                        console.log(`🔧 Applied default global dimensions for ${textRotation}:`, { width: nodeWidth, height: nodeHeight });
+                    }
+                    
+                    console.log('✅ Global config loaded:', config);
+                    return config;
+                }
+            } catch (error) {
+                console.error('❌ Failed to load global config:', error);
+                // TODO: Replace with API call
+                // return loadGlobalConfigAPI();
+            }
+            return null;
+        }
+
+        function saveLevelSettings() {
+            try {
+                localStorage.setItem(CONFIG_KEYS.LEVELS, JSON.stringify(levelSettings));
+                console.log('💾 Level settings saved:', levelSettings);
+            } catch (error) {
+                console.error('❌ Failed to save level settings:', error);
+                // TODO: Replace with API call
+                // saveLevelSettingsAPI(levelSettings);
+            }
+        }
+
+        function loadLevelSettings() {
+            try {
+                const saved = localStorage.getItem(CONFIG_KEYS.LEVELS);
+                if (saved) {
+                    levelSettings = JSON.parse(saved);
+                    console.log('✅ Level settings loaded:', levelSettings);
+                    return levelSettings;
+                }
+            } catch (error) {
+                console.error('❌ Failed to load level settings:', error);
+                // TODO: Replace with API call
+                // return loadLevelSettingsAPI();
+            }
+            return {};
+        }
+
+        // Future API functions (placeholder)
+        async function saveGlobalConfigAPI(config) {
+            // TODO: Implement API call
+            // const response = await fetch('/api/family-tree/global-config', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(config)
+            // });
+            // return response.json();
+            console.log('🔄 API: Would save global config:', config);
+        }
+
+        async function loadGlobalConfigAPI() {
+            // TODO: Implement API call
+            // const response = await fetch('/api/family-tree/global-config');
+            // return response.json();
+            console.log('🔄 API: Would load global config');
+            return null;
+        }
+
+        async function saveLevelSettingsAPI(settings) {
+            // TODO: Implement API call
+            // const response = await fetch('/api/family-tree/level-settings', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify(settings)
+            // });
+            // return response.json();
+            console.log('🔄 API: Would save level settings:', settings);
+        }
+
+        async function loadLevelSettingsAPI() {
+            // TODO: Implement API call
+            // const response = await fetch('/api/family-tree/level-settings');
+            // return response.json();
+            console.log('🔄 API: Would load level settings');
+            return {};
+        }
+
+        // Orientation-aware dimension management functions
+        function saveCurrentGlobalDimensions(orientation) {
+            try {
+                const saved = localStorage.getItem(CONFIG_KEYS.GLOBAL);
+                if (saved) {
+                    const config = JSON.parse(saved);
+                    if (!config.orientationDimensions) {
+                        config.orientationDimensions = {};
+                    }
+                    
+                    // Normalize orientation key (both vertical types use same dimensions)
+                    const orientationKey = (orientation === 'vertical-top' || orientation === 'vertical-bottom') ? 'vertical' : orientation;
+                    
+                    // Save current nodeWidth and nodeHeight for this orientation
+                    config.orientationDimensions[orientationKey] = {
+                        width: nodeWidth,
+                        height: nodeHeight
+                    };
+                    
+                    localStorage.setItem(CONFIG_KEYS.GLOBAL, JSON.stringify(config));
+                    console.log(`💾 Saved global dimensions for ${orientation} (key: ${orientationKey}):`, { width: nodeWidth, height: nodeHeight });
+                }
+            } catch (error) {
+                console.error('❌ Failed to save global dimensions:', error);
+            }
+        }
+
+        function loadGlobalDimensionsForOrientation(orientation) {
+            try {
+                const saved = localStorage.getItem(CONFIG_KEYS.GLOBAL);
+                let dimensions;
+                
+                if (saved) {
+                    const config = JSON.parse(saved);
+                    
+                    // Normalize orientation key (both vertical types use same dimensions)
+                    const orientationKey = (orientation === 'vertical-top' || orientation === 'vertical-bottom') ? 'vertical' : orientation;
+                    
+                    if (config.orientationDimensions && config.orientationDimensions[orientationKey]) {
+                        // Load saved dimensions for this orientation
+                        dimensions = config.orientationDimensions[orientationKey];
+                        console.log(`✅ Loaded global dimensions for ${orientation} (key: ${orientationKey}):`, dimensions);
+                    }
+                }
+                
+                // If no saved dimensions, apply defaults
+                if (!dimensions) {
+                    if (orientation === 'vertical-top' || orientation === 'vertical-bottom') {
+                        dimensions = { width: 100, height: 200 }; // Vertical default as requested
+                    } else {
+                        dimensions = { width: 200, height: 100 }; // Horizontal default as requested
+                    }
+                    console.log(`🔧 Applied default global dimensions for ${orientation}:`, dimensions);
+                }
+                
+                // Apply dimensions to variables and UI
+                nodeWidth = dimensions.width;
+                nodeHeight = dimensions.height;
+                
+                // Update UI inputs with dimensions (this is the key fix)
+                if (document.getElementById('nodeWidth')) {
+                    document.getElementById('nodeWidth').value = dimensions.width;
+                }
+                if (document.getElementById('nodeHeight')) {
+                    document.getElementById('nodeHeight').value = dimensions.height;
+                }
+                
+            } catch (error) {
+                console.error('❌ Failed to load global dimensions:', error);
+                
+                // Fallback to defaults
+                if (orientation === 'vertical-top' || orientation === 'vertical-bottom') {
+                    nodeWidth = 100;
+                    nodeHeight = 200;
+                } else {
+                    nodeWidth = 200;
+                    nodeHeight = 100;
+                }
+                
+                // Update UI inputs with fallback values
+                if (document.getElementById('nodeWidth')) {
+                    document.getElementById('nodeWidth').value = nodeWidth;
+                }
+                if (document.getElementById('nodeHeight')) {
+                    document.getElementById('nodeHeight').value = nodeHeight;
+                }
+            }
+        }
+
+        function saveCurrentLevelDimensions(level, orientation) {
+            if (!levelSettings[level] || !orientation) return;
+            
+            try {
+                if (!levelSettings[level].orientationDimensions) {
+                    levelSettings[level].orientationDimensions = {};
+                }
+                
+                // Normalize orientation key (both vertical types use same dimensions)
+                const orientationKey = (orientation === 'vertical-top' || orientation === 'vertical-bottom') ? 'vertical' : orientation;
+                
+                // Save current level dimensions for this orientation
+                levelSettings[level].orientationDimensions[orientationKey] = {
+                    width: levelSettings[level].width,
+                    height: levelSettings[level].height
+                };
+                
+                saveLevelSettings(); // Persist to storage
+                console.log(`💾 Saved level ${level} dimensions for ${orientation} (key: ${orientationKey}):`, { 
+                    width: levelSettings[level].width, 
+                    height: levelSettings[level].height 
+                });
+            } catch (error) {
+                console.error('❌ Failed to save level dimensions:', error);
+            }
+        }
+
+        function loadLevelDimensionsForOrientation(level, orientation) {
+            if (!levelSettings[level]) return null;
+            
+            try {
+                // Normalize orientation key (both vertical types use same dimensions)
+                const orientationKey = (orientation === 'vertical-top' || orientation === 'vertical-bottom') ? 'vertical' : orientation;
+                
+                // Ensure orientationDimensions exists
+                if (!levelSettings[level].orientationDimensions) {
+                    levelSettings[level].orientationDimensions = {
+                        horizontal: { width: nodeWidth, height: nodeHeight },
+                        vertical: { width: 100, height: 200 } // User's preferred vertical defaults
+                    };
+                    console.log(`🔧 Initialized orientationDimensions for level ${level}`);
+                }
+                
+                if (levelSettings[level].orientationDimensions[orientationKey]) {
+                    // Load saved dimensions for this orientation
+                    const dimensions = levelSettings[level].orientationDimensions[orientationKey];
+                    console.log(`✅ Loaded level ${level} dimensions for ${orientation} (key: ${orientationKey}):`, dimensions);
+                    return dimensions;
+                } else {
+                    // Apply default dimensions for orientation and save them
+                    let defaultDimensions;
+                    if (orientation === 'vertical-top' || orientation === 'vertical-bottom') {
+                        defaultDimensions = { width: 100, height: 200 }; // User's preferred vertical defaults
+                    } else {
+                        defaultDimensions = { width: nodeWidth, height: nodeHeight };
+                    }
+                    
+                    // Save default dimensions to orientationDimensions
+                    levelSettings[level].orientationDimensions[orientationKey] = defaultDimensions;
+                    saveLevelSettings(); // Persist the initialization
+                    
+                    console.log(`🔧 Applied and saved default level ${level} dimensions for ${orientation} (key: ${orientationKey}):`, defaultDimensions);
+                    return defaultDimensions;
+                }
+            } catch (error) {
+                console.error('❌ Failed to load level dimensions:', error);
+                return null;
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load saved configurations first
+            loadGlobalConfig();
+            loadLevelSettings();
+            
+            initializeTree();
+            setupEventListeners();
+            initializeEventListeners(); // Also call the level-specific event listeners
+            // Tự động load data.json từ đầu
+            loadDataJSON();
+        });
+
+        function initializeTree() {
+            const container = document.querySelector('.tree-container');
+            width = container.clientWidth;
+            height = container.clientHeight;
+
+            svg = d3.select("#tree-svg")
+                .attr("width", width)
+                .attr("height", height);
+
+            g = svg.append("g");
+
+            // Setup zoom
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 3])
+                .on("zoom", (event) => {
+                    g.attr("transform", event.transform);
+                });
+
+            svg.call(zoom);
+        }
+
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                searchPerson(e.target.value);
+            });
+
+            // Option checkboxes with auto-save
+            const options = ['showTitle', 'showBirthday', 'showImage', 'showDeathDate', 'showMarriageLinks'];
+            options.forEach(option => {
+                document.getElementById(option).addEventListener('change', function() {
+                    updateDisplay();
+                    saveGlobalConfig(); // Auto-save global config
+                });
+            });
+
+            // Global text rotation with auto-save and dimension switching
+            document.getElementById('textRotation').addEventListener('change', function() {
+                const newRotation = this.value;
+                const currentRotation = document.getElementById('textRotation').dataset.previousValue || 'horizontal';
+                
+                // Save current dimensions before switching
+                saveCurrentGlobalDimensions(currentRotation);
+                
+                // Load dimensions for new orientation
+                loadGlobalDimensionsForOrientation(newRotation);
+                
+                // Store new rotation as previous value for next change
+                this.dataset.previousValue = newRotation;
+                
+                updateDisplay();
+                saveGlobalConfig(); // Auto-save global config
+            });
+
+            // Spacing sliders with auto-save
+            document.getElementById('nodeSpacing').addEventListener('input', function(e) {
+                minNodeSpacing = parseInt(e.target.value);
+                document.getElementById('nodeSpacingValue').textContent = minNodeSpacing + 'px';
+                updateDisplay();
+                saveGlobalConfig(); // Auto-save global config
+            });
+
+            document.getElementById('levelSpacing').addEventListener('input', function(e) {
+                levelSpacing = parseInt(e.target.value);
+                document.getElementById('levelSpacingValue').textContent = levelSpacing + 'px';
+                updateDisplay();
+                saveGlobalConfig(); // Auto-save global config
+            });
+
+            // Global node width/height inputs with auto-save
+            document.getElementById('nodeWidth').addEventListener('input', function(e) {
+                const newWidth = parseInt(e.target.value) || 200;
+                nodeWidth = newWidth;
+                
+                // Update orientation dimensions for current rotation
+                const currentRotation = document.getElementById('textRotation')?.value || 'horizontal';
+                saveCurrentGlobalDimensions(currentRotation);
+                
+                updateDisplay();
+                saveGlobalConfig(); // Auto-save global config
+            });
+
+            document.getElementById('nodeHeight').addEventListener('input', function(e) {
+                const newHeight = parseInt(e.target.value) || 100;
+                nodeHeight = newHeight;
+                
+                // Update orientation dimensions for current rotation
+                const currentRotation = document.getElementById('textRotation')?.value || 'horizontal';
+                saveCurrentGlobalDimensions(currentRotation);
+                
+                updateDisplay();
+                saveGlobalConfig(); // Auto-save global config
+            });
+
+
+        }
+
+        function loadSampleData() {
+            console.log("🔄 Loading sample data as fallback...");
+            
+            familyData = [
+                {
+                    "id": 1,
+                    "name": "Ông Tổ",
+                    "title": "Tổ tiên",
+                    "birthday": "1900-01-01",
+                    "parent_id": 0,
+                    "married_with": 2,
+                    "gender": 1,
+                    "date_of_death": "1980-12-31",
+                    "place_heaven": "Quê nhà",
+                    "_image_list": null,
+                    "has_child": 1,
+                    "child_of_second_married": null
+                },
+                {
+                    "id": 2,
+                    "name": "Bà Tổ",
+                    "title": "Tổ tiên",
+                    "birthday": "1905-01-01", 
+                    "parent_id": 0,
+                    "married_with": 1,
+                    "gender": 2,
+                    "date_of_death": "1985-12-31",
+                    "place_heaven": "Quê nhà",
+                    "_image_list": null,
+                    "has_child": 1,
+                    "child_of_second_married": null
+                },
+                {
+                    "id": 3,
+                    "name": "Con trai 1",
+                    "title": "Con cả",
+                    "birthday": "1925-01-01",
+                    "parent_id": 1,
+                    "married_with": null,
+                    "gender": 1,
+                    "date_of_death": null,
+                    "place_heaven": null,
+                    "_image_list": null,
+                    "has_child": 0,
+                    "child_of_second_married": null
+                },
+                {
+                    "id": 4,
+                    "name": "Con gái 1",
+                    "title": "Con thứ 2",
+                    "birthday": "1927-01-01",
+                    "parent_id": 1,
+                    "married_with": null,
+                    "gender": 2,
+                    "date_of_death": null,
+                    "place_heaven": null,
+                    "_image_list": null,
+                    "has_child": 0,
+                    "child_of_second_married": null
+                }
+            ];
+            
+            processData();
+            updateDisplay();
+            updateStats();
+            
+            console.log("✅ Sample data loaded with", familyData.length, "members");
+        }
+
+        function processData() {
+            console.log("Processing data with", familyData.length, "members");
+            
+            const nodeMap = new Map();
+            
+            // Tạo map cho tất cả các person
+            familyData.forEach(person => {
+                nodeMap.set(person.id, {
+                    ...person,
+                    children: []
+                });
+            });
+
+            // Xây dựng cây phả hệ
+            familyData.forEach(person => {
+                if (person.parent_id && person.parent_id !== 0) {
+                    const parent = nodeMap.get(person.parent_id);
+                    const child = nodeMap.get(person.id);
+                    
+                    if (parent && child) {
+                        parent.children.push(child);
+                    }
+                }
+            });
+
+            // Tìm root nodes
+            const roots = Array.from(nodeMap.values()).filter(p => !p.parent_id || p.parent_id === 0);
+            console.log("Found", roots.length, "root nodes");
+            
+            if (roots.length > 0) {
+                root = d3.hierarchy({children: roots});
+                console.log("Created hierarchy with", root.descendants().length, "total nodes");
+            }
+        }
+
+        function updateDisplay() {
+            if (!root) return;
+
+            // Clear previous
+            g.selectAll("*").remove();
+            
+            // Reset ARRAY_H_LINE mỗi lần vẽ lại
+            ARRAY_H_LINE = [];
+            console.log("🔄 Reset ARRAY_H_LINE");
+
+            // Sử dụng thuật toán layout tùy chỉnh
+            customTreeLayout(root);
+
+            // Draw links - chỉ vẽ đến con ruột (không có married_with)
+            const biologicalLinks = root.links().filter(link => {
+                // Con ruột: có parent_id nhưng KHÔNG có married_with
+                const child = link.target.data;
+                const isInLaw = child.married_with && child.married_with !== null;
+                
+                console.log(`🔗 Link check: ${link.source.data.name} -> ${child.name}, married_with: ${child.married_with}, isInLaw: ${isInLaw}`);
+                
+                return !isInLaw; // Chỉ lấy những con KHÔNG phải con dâu/rể
+            });
+            
+            console.log(`📊 Total links: ${root.links().length}, Biological links: ${biologicalLinks.length}`);
+            
+            const links = g.selectAll(".tree-link")
+                .data(biologicalLinks)
+                .enter().append("path")
+                .attr("class", "tree-link")
+                .attr("id", d => `link-${d.source.data.id}-to-${d.target.data.id}`) // Thêm ID duy nhất cho từng link
+                .attr("d", customLinkPath);
+
+            // Draw marriage links
+            if (document.getElementById('showMarriageLinks').checked) {
+                drawMarriageLinks();
+            }
+
+            // Draw nodes
+            const nodeGroups = g.selectAll(".person-node")
+                .data(root.descendants())
+                .enter().append("g")
+                .attr("class", "person-node")
+                .attr("transform", d => {
+                    const settings = getLevelSettings(d.depth);
+                    // d.y là vị trí trung tâm, cần chuyển về vị trí đỉnh trái
+                    const topY = d.y - settings.height / 2;
+                    return `translate(${d.x - settings.width/2},${topY})`;
+                })
+                .on("click", (event, d) => selectPerson(d.data))
+                .on("mouseover", function(event, d) {
+                    // Console log khi hover
+                    console.log("🖱️ Hover vào node:", {
+                        name: d.data.name,
+                        level: d.depth + 1,
+                        id: d.data.id,
+                        position: { x: Math.round(d.x), y: Math.round(d.y) },
+                        hasChildren: d.children ? d.children.length : 0,
+                        hasParent: d.parent ? true : false
+                    });
+                    
+                    // Show simple HTML tooltip
+                    showSimpleTooltip(event, d);
+                    
+                    // Clear previous highlights
+                    clearHighlightedLinks();
+                    
+                    // Highlight parent-child links nếu node này có children (đường đỏ)
+                    if (d.children && d.children.length > 0) {
+                        highlightParentChildLinks(d);
+                    }
+                    
+                    // Highlight child-parent link nếu node này có parent (đường xanh)
+                    if (d.parent) {
+                        highlightChildParentLink(d);
+                    }
+                })
+                .on("mouseout", function() {
+                    console.log("🖱️ Mouse out");
+                    hideSimpleTooltip();
+                    
+                    // Clear highlight khi mouse out
+                    clearHighlightedLinks();
+                });
+
+            // Add rectangles
+            nodeGroups.append("rect")
+                .attr("class", d => {
+                    let classes = `person-rect ${getGenderClass(d.data)} ${d.data.date_of_death ? 'deceased' : ''}`;
+                    if (d.data.isInLaw) classes += ' in-law';
+                    if (d.data.child_of_second_married) classes += ' second-marriage-child';
+                    return classes;
+                })
+                .attr("width", d => getLevelSettings(d.depth).width)
+                .attr("height", d => getLevelSettings(d.depth).height);
+
+            // Add TextInfo container with centered text layout
+            addTextInfoContainer(nodeGroups);
+
+            // Add additional info (kept for backward compatibility, but TextInfo handles main content)
+            // addAdditionalInfo(nodeGroups);
+            
+            // Update level selector
+            updateLevelSelector();
+            
+            // Apply level highlighting if a level is selected
+            if (selectedLevel !== -1) {
+                highlightLevel(selectedLevel);
+            }
+        }
+
+        // Level management functions
+        function updateLevelSelector() {
+            if (!root) return;
+            
+            const selector = document.getElementById('levelSelector');
+            const currentValue = selector.value;
+            
+            // Clear existing options (except the first one)
+            selector.innerHTML = '<option value="-1">-- Chọn hàng --</option>';
+            
+            // Get all levels
+            const nodes = root.descendants();
+            const levels = {};
+            nodes.forEach(node => {
+                if (!levels[node.depth]) levels[node.depth] = [];
+                levels[node.depth].push(node);
+            });
+            
+            // Add options for each level
+            Object.keys(levels).sort((a, b) => parseInt(a) - parseInt(b)).forEach(levelKey => {
+                const level = parseInt(levelKey);
+                const nodeCount = levels[level].length;
+                const option = document.createElement('option');
+                option.value = level;
+                option.textContent = `Hàng ${level} (${nodeCount} người)`;
+                selector.appendChild(option);
+            });
+            
+            // Restore previous selection if still valid
+            if (currentValue && document.querySelector(`option[value="${currentValue}"]`)) {
+                selector.value = currentValue;
+            }
+        }
+        
+        function selectLevel(level) {
+            selectedLevel = level;
+            
+            // Remove previous highlights
+            g.selectAll('.person-rect').classed('level-highlighted', false);
+            
+            if (level === -1) {
+                // Hide level controls
+                document.getElementById('levelControls').style.display = 'none';
+                return;
+            }
+            
+            // Show level controls
+            document.getElementById('levelControls').style.display = 'block';
+            
+            // Get current settings for this level
+            const settings = getLevelSettings(level);
+            
+            // Load text rotation for this level and set previous value
+            const currentTextRotation = settings.textRotation || '';
+            document.getElementById('levelTextRotation').value = currentTextRotation;
+            document.getElementById('levelTextRotation').dataset.previousValue = currentTextRotation;
+            
+            // Ensure level has orientationDimensions initialized
+            if (!levelSettings[level]) {
+                levelSettings[level] = { 
+                    orientation: 'horizontal', 
+                    width: nodeWidth, 
+                    height: nodeHeight,
+                    spacing: minNodeSpacing,
+                    textRotation: '',
+                    displayOptions: {},
+                    orientationDimensions: {
+                        horizontal: { width: nodeWidth, height: nodeHeight },
+                        vertical: { width: 100, height: 200 } // User's preferred vertical defaults
+                    }
+                };
+            } else if (!levelSettings[level].orientationDimensions) {
+                // Initialize orientationDimensions if it doesn't exist
+                levelSettings[level].orientationDimensions = {
+                    horizontal: { width: nodeWidth, height: nodeHeight },
+                    vertical: { width: 100, height: 200 } // User's preferred vertical defaults
+                };
+            }
+            
+            // Load orientation-specific dimensions for current text rotation
+            const orientationDimensions = loadLevelDimensionsForOrientation(level, currentTextRotation);
+            if (orientationDimensions) {
+                document.getElementById('levelWidth').value = orientationDimensions.width;
+                document.getElementById('levelHeight').value = orientationDimensions.height;
+                console.log(`🎯 Level ${level} selected - loaded ${currentTextRotation || 'default'} dimensions:`, orientationDimensions);
+            } else {
+                // This should not happen now, but keep as fallback
+                document.getElementById('levelWidth').value = settings.width;
+                document.getElementById('levelHeight').value = settings.height;
+                console.log(`🎯 Level ${level} selected - using fallback dimensions:`, { width: settings.width, height: settings.height });
+            }
+            
+            // Show custom spacing if exists, otherwise show default
+            const hasCustomSpacing = levelSettings[level] && levelSettings[level].spacing !== undefined;
+            const displaySpacing = hasCustomSpacing ? settings.spacing : minNodeSpacing;
+            document.getElementById('levelNodeSpacing').value = displaySpacing;
+            
+            // Load display options for this level
+            const displayOptions = settings.displayOptions || {};
+            document.getElementById('levelShowTitle').checked = displayOptions.showTitle !== undefined ? displayOptions.showTitle : true;
+            document.getElementById('levelShowBirthday').checked = displayOptions.showBirthday !== undefined ? displayOptions.showBirthday : true;
+            document.getElementById('levelShowDeathDate').checked = displayOptions.showDeathDate !== undefined ? displayOptions.showDeathDate : true;
+            document.getElementById('levelShowImage').checked = displayOptions.showImage !== undefined ? displayOptions.showImage : true;
+            
+            // Highlight nodes of selected level
+            highlightLevel(level);
+        }
+        
+        function highlightLevel(level) {
+            if (!root) return;
+            
+            // Remove all previous highlights
+            g.selectAll('.person-rect').classed('level-highlighted', false);
+            
+            // Highlight nodes of the specified level
+            g.selectAll('.person-rect')
+                .filter(d => d.depth === level)
+                .classed('level-highlighted', true);
+        }
+        
+        function updateLevelDisplay() {
+            if (selectedLevel === -1) return;
+            
+            const width = parseInt(document.getElementById('levelWidth').value) || nodeWidth;
+            const height = parseInt(document.getElementById('levelHeight').value) || nodeHeight;
+            const spacing = parseInt(document.getElementById('levelNodeSpacing').value);
+            const textRotation = document.getElementById('levelTextRotation').value;
+            const previousRotation = document.getElementById('levelTextRotation').dataset.previousValue || '';
+            
+            // Save current dimensions before switching orientation
+            if (previousRotation && previousRotation !== textRotation) {
+                saveCurrentLevelDimensions(selectedLevel, previousRotation);
+                
+                // Only update UI inputs when orientation changes, not on every call
+                const orientationDimensions = loadLevelDimensionsForOrientation(selectedLevel, textRotation);
+                if (orientationDimensions) {
+                    document.getElementById('levelWidth').value = orientationDimensions.width;
+                    document.getElementById('levelHeight').value = orientationDimensions.height;
+                }
+            }
+            
+            // Store new rotation as previous value for next change
+            document.getElementById('levelTextRotation').dataset.previousValue = textRotation;
+            
+            // Validate spacing value
+            const validSpacing = !isNaN(spacing) && spacing >= 5 ? spacing : minNodeSpacing;
+            
+            // Update settings
+            if (!levelSettings[selectedLevel]) {
+                levelSettings[selectedLevel] = { 
+                    orientation: 'horizontal', 
+                    width: nodeWidth, 
+                    height: nodeHeight,
+                    spacing: minNodeSpacing,
+                    textRotation: '',
+                    displayOptions: {},
+                    orientationDimensions: {
+                        horizontal: { width: nodeWidth, height: nodeHeight },
+                        vertical: { width: 100, height: 200 } // Correct vertical defaults for both top/bottom
+                    }
+                };
+            }
+            
+            // Use current input values (user may have just changed them)
+            levelSettings[selectedLevel].width = width;
+            levelSettings[selectedLevel].height = height;
+            levelSettings[selectedLevel].spacing = validSpacing;
+            levelSettings[selectedLevel].textRotation = textRotation;
+            
+            console.log(`Updated level ${selectedLevel}: width=${width}, height=${height}, spacing=${validSpacing}, textRotation=${textRotation}`);
+            
+            // Update display options
+            levelSettings[selectedLevel].displayOptions = {
+                showTitle: document.getElementById('levelShowTitle').checked,
+                showBirthday: document.getElementById('levelShowBirthday').checked,
+                showDeathDate: document.getElementById('levelShowDeathDate').checked,
+                showImage: document.getElementById('levelShowImage').checked
+            };
+            
+            // Auto-save level settings
+            saveLevelSettings();
+            
+            // Immediately redraw the tree with new settings
+            updateDisplay();
+        }
+        
+        function applyLevelSettings() {
+            if (selectedLevel === -1) return;
+            
+            updateLevelDisplay(); // This now calls updateDisplay() internally
+        }
+        
+        function resetLevelSpacing() {
+            if (selectedLevel === -1) return;
+            
+            console.log(`Before reset - Level ${selectedLevel} settings:`, levelSettings[selectedLevel]);
+            
+            // Remove custom spacing for this level but keep other settings
+            if (levelSettings[selectedLevel]) {
+                delete levelSettings[selectedLevel].spacing;
+                console.log(`After delete spacing - Level ${selectedLevel} settings:`, levelSettings[selectedLevel]);
+            } else {
+                console.log(`Level ${selectedLevel} not found in levelSettings, creating default entry`);
+                // If level doesn't exist, ensure we don't have any undefined behavior
+                levelSettings[selectedLevel] = {
+                    orientation: 'horizontal',
+                    width: nodeWidth,
+                    height: nodeHeight,
+                    displayOptions: {}
+                };
+            }
+            
+            // Reset UI input to default value
+            document.getElementById('levelNodeSpacing').value = minNodeSpacing;
+            
+            console.log(`Reset spacing for level ${selectedLevel} to default (${minNodeSpacing}px)`);
+            console.log(`Current levelSettings:`, levelSettings);
+            
+            // Redraw tree with default spacing
+            updateDisplay();
+        }
+        
+        function getDisplayOptions(depth) {
+            const levelOptions = levelSettings[depth]?.displayOptions || {};
+            
+            return {
+                showTitle: levelOptions.showTitle !== undefined ? levelOptions.showTitle : 
+                          (document.getElementById('showTitle')?.checked || false),
+                showBirthday: levelOptions.showBirthday !== undefined ? levelOptions.showBirthday : 
+                             (document.getElementById('showBirthday')?.checked || false),
+                showDeathDate: levelOptions.showDeathDate !== undefined ? levelOptions.showDeathDate : 
+                              (document.getElementById('showDeathDate')?.checked || false),
+                showImage: levelOptions.showImage !== undefined ? levelOptions.showImage : 
+                          (document.getElementById('showImage')?.checked || false)
+            };
+        }
+        
+        function getTextRotation(depth) {
+            const levelSettings = getLevelSettings(depth);
+            const levelRotation = levelSettings.textRotation;
+            
+            // If level has specific rotation, use it; otherwise use global
+            if (levelRotation && levelRotation !== '') {
+                return levelRotation;
+            }
+            
+            const globalRotation = document.getElementById('textRotation')?.value || 'horizontal';
+            return globalRotation;
+        }
+        
+        function getSVGTextTransform(rotation, x, y) {
+            switch(rotation) {
+                case 'vertical-top':
+                    return `translate(${x}, ${y}) rotate(-90)`;
+                case 'vertical-bottom':
+                    return `translate(${x}, ${y}) rotate(90)`;
+                case 'horizontal':
+                default:
+                    return `translate(${x}, ${y})`;
+            }
+        }
+        
+        function getLevelSettings(level) {
+            const defaultSettings = {
+                orientation: 'horizontal',
+                width: nodeWidth,
+                height: nodeHeight,
+                spacing: minNodeSpacing,
+                textRotation: '', // Empty means use global settings
+                displayOptions: {} // Empty means use global settings
+            };
+            
+            if (!levelSettings[level]) {
+                return defaultSettings;
+            }
+            
+            // Merge with default settings, ensuring spacing is always valid
+            return {
+                ...defaultSettings,
+                ...levelSettings[level],
+                spacing: levelSettings[level].spacing !== undefined ? levelSettings[level].spacing : minNodeSpacing
+            };
+        }
+
+        // Helper function để group spouse cạnh nhau trong cùng level
+        function groupSpousesInLevel(levelNodes) {
+            const grouped = [];
+            const processed = new Set();
+            
+            levelNodes.forEach(node => {
+                if (processed.has(node.data.id)) return;
+                
+                // Thêm node chính
+                grouped.push(node);
+                processed.add(node.data.id);
+                
+                // Tìm tất cả spouse của node này trong cùng level
+                const spousesInLevel = levelNodes.filter(otherNode => {
+                    if (processed.has(otherNode.data.id)) return false;
+                    
+                    // Check if they are married (both directions)
+                    return (node.data.married_with === otherNode.data.id) ||
+                           (otherNode.data.married_with === node.data.id);
+                });
+                
+                // Thêm spouse ngay sau node chính
+                spousesInLevel.forEach(spouse => {
+                    grouped.push(spouse);
+                    processed.add(spouse.data.id);
+                });
+                
+                console.log(`🤝 Node ${node.data.name} has ${spousesInLevel.length} spouses in same level:`, spousesInLevel.map(s => s.data.name));
+            });
+            
+            return grouped;
+        }
+
+        function customTreeLayout(root) {
+            const nodes = root.descendants();
+            
+            // Nhóm nodes theo level (hàng)
+            const levels = {};
+            nodes.forEach(node => {
+                if (!levels[node.depth]) levels[node.depth] = [];
+                levels[node.depth].push(node);
+            });
+
+            // Vị trí gốc X (root ở hàng 0)
+            const rootX = width / 2;
+            
+            // Sắp xếp các level theo thứ tự
+            const sortedLevels = Object.keys(levels).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            // Tính toán vị trí đỉnh cho từng hàng
+            let currentTopY = 50; // Đỉnh của hàng đầu tiên
+            
+            // Xử lý từng hàng theo thứ tự
+            sortedLevels.forEach((levelKey, index) => {
+                const level = parseInt(levelKey);
+                const levelNodes = levels[level];
+                const levelSettings = getLevelSettings(level);
+                
+                console.log(`Level ${level} settings in layout:`, levelSettings);
+                console.log(`Level ${level} raw from levelSettings object:`, window.levelSettings ? window.levelSettings[level] : 'undefined');
+                
+                // 1. Đếm số phần tử trong hàng
+                const originalNodeCount = levelNodes.length;
+                
+                // 1.5. Group spouses cạnh nhau  
+                const groupedNodes = groupSpousesInLevel(levelNodes);
+                const nodeCount = groupedNodes.length; // Should be same as original
+                
+                console.log(`📍 Level ${level}: Original order: ${levelNodes.map(n => n.data.name).join(' - ')}`);
+                console.log(`📍 Level ${level}: Grouped order: ${groupedNodes.map(n => n.data.name).join(' - ')}`);
+                
+                // 2. Vị trí đỉnh của hàng này
+                const topY = currentTopY;
+                
+                // 3. Vị trí trung tâm của node (để SVG render đúng)
+                const centerY = topY + levelSettings.height / 2;
+                
+                // 4. Tính tổng width cần thiết cho hàng (sử dụng spacing riêng của level)
+                const nodeSpacing = Math.max(levelSettings.spacing || minNodeSpacing, 0); // Ensure spacing >= 0
+                const totalWidth = nodeCount * levelSettings.width + (nodeCount - 1) * nodeSpacing;
+                
+                // 5. Căn giữa theo rootX
+                const firstElementX = rootX - totalWidth / 2;
+                
+                // 6. Sắp xếp các phần tử với khoảng cách đều (sử dụng grouped order)
+                groupedNodes.forEach((node, nodeIndex) => {
+                    node.x = firstElementX + nodeIndex * (levelSettings.width + nodeSpacing) + levelSettings.width / 2;
+                    node.y = centerY; // Sử dụng vị trí trung tâm cho SVG
+                });
+                
+                // 7. Tính toán đỉnh cho hàng tiếp theo: đỉnh hiện tại + chiều cao + khoảng cách
+                if (index < sortedLevels.length - 1) {
+                    currentTopY = topY + levelSettings.height + levelSpacing;
+                }
+                
+                // Debug log
+                console.log(`Level ${level}: ${nodeCount} nodes, size: ${levelSettings.width}x${levelSettings.height}, spacing: ${nodeSpacing}, totalWidth: ${totalWidth}, topY: ${topY}, centerY: ${centerY}, nextTopY: ${currentTopY}`);
+            });
+        }
+
+        // Helper function để tìm spouse đầu tiên của một node (trong trường hợp có nhiều vợ/chồng)
+        function getFirstMarriagePartner(node, allNodes) {
+            const spouses = [];
+            
+            // Tìm theo hướng 1: node.married_with -> partner
+            if (node.data.married_with) {
+                console.log(`🔍 Looking for spouse of ${node.data.id} (${node.data.name}), married_with: ${node.data.married_with}`);
+                const spouse = allNodes.find(n => n.data.id === node.data.married_with);
+                
+                if (spouse) {
+                    spouses.push(spouse);
+                    console.log(`✅ Found spouse via married_with: ${spouse.data.id} (${spouse.data.name})`);
+                } else {
+                    console.log(`❌ Spouse ${node.data.married_with} not found in tree nodes`);
+                }
+            } else {
+                console.log(`🔍 Node ${node.data.id} (${node.data.name}) has no married_with property`);
+            }
+            
+            // Tìm theo hướng 2: partner.married_with -> node (có thể có nhiều người married_with cùng node)
+            allNodes.forEach(otherNode => {
+                if (otherNode.data.married_with === node.data.id && !spouses.find(s => s.data.id === otherNode.data.id)) {
+                    spouses.push(otherNode);
+                    console.log(`✅ Found spouse via reverse lookup: ${otherNode.data.id} (${otherNode.data.name}) -> ${node.data.name}`);
+                }
+            });
+            
+            if (spouses.length === 0) {
+                console.log(`❌ No marriage partner found for ${node.data.name}`);
+                return null;
+            }
+            
+            // Sắp xếp spouses theo X position để chọn spouse đầu tiên (leftmost)
+            spouses.sort((a, b) => a.x - b.x);
+            const firstSpouse = spouses[0];
+            
+            console.log(`💑 Node ${node.data.name} has ${spouses.length} spouse(s), using FIRST spouse: ${firstSpouse.data.name} (X: ${Math.round(firstSpouse.x)})`);
+            
+            if (spouses.length > 1) {
+                console.log(`👥 Other spouses:`, spouses.slice(1).map(s => `${s.data.name} (X: ${Math.round(s.x)})`));
+            }
+            
+            return firstSpouse;
+        }
+
+        // Helper function để tính middle point giữa hai nodes (cha và mẹ)
+        function getMarriageMiddlePoint(parent, spouse) {
+            const middlePoint = {
+                x: (parent.x + spouse.x) / 2,
+                y: parent.y  // Cùng level với cha/mẹ
+            };
+            
+            console.log(`💑 Middle point calculation: Parent(${Math.round(parent.x)}, ${Math.round(parent.y)}) + Spouse(${Math.round(spouse.x)}, ${Math.round(spouse.y)}) = Middle(${Math.round(middlePoint.x)}, ${Math.round(middlePoint.y)})`);
+            
+            return middlePoint;
+        }
+
+        function customLinkPath(d) {
+            const sourceSettings = getLevelSettings(d.source.depth);
+            const targetSettings = getLevelSettings(d.target.depth);
+            
+            const sourceX = d.source.x;
+            const sourceY = d.source.y + sourceSettings.height / 2;
+            const targetX = d.target.x;
+            const targetY = d.target.y - targetSettings.height / 2;
+            
+            // Constants theo yêu cầu
+            const Y_SPACE = levelSpacing; // khoảng cách 2 hàng
+            
+            // Tính deltaY động: chia đều khoảng cách cho các node có con cùng level với Nk
+            const nodesWithChildrenAtSameLevel = root.descendants().filter(node => 
+                node.depth === d.source.depth && node.children && node.children.length > 0
+            );
+            const deltaY = nodesWithChildrenAtSameLevel.length > 1 ? 
+                (Y_SPACE - 2 * boundY) / nodesWithChildrenAtSameLevel.length : 
+                10; // fallback value nếu chỉ có 1 node
+            
+            console.log(`🔢 Dynamic deltaY calculation: Level ${d.source.depth} has ${nodesWithChildrenAtSameLevel.length} nodes with children -> deltaY = (${Y_SPACE} - 2*${boundY}) / ${nodesWithChildrenAtSameLevel.length} = ${deltaY}`);
+            
+            // Thông tin của cặp cha-con
+            const Nk = d.source; // Node cha
+            const conX = d.target; // Node con cụ thể
+            
+            console.log(`🔗 Processing H_LINE_TO_PARENT: Parent ${Nk.data.id} (Level ${Nk.depth}, X=${Math.round(Nk.x)}) -> Child ${conX.data.id}`);
+            
+            // Check if parent has marriage partner (chọn spouse đầu tiên nếu có nhiều)
+            const allNodes = root.descendants();
+            const firstSpouse = getFirstMarriagePartner(Nk, allNodes);
+            
+            let actualSourceX, actualSourceY;
+            
+            if (firstSpouse) {
+                // Use middle point between parent and first spouse
+                const middlePoint = getMarriageMiddlePoint(Nk, firstSpouse);
+                actualSourceX = middlePoint.x;
+                actualSourceY = middlePoint.y; // Start from Y middle of parent, not bottom
+                console.log(`💑 Parent ${Nk.data.id} has first spouse ${firstSpouse.data.id}, using middle point: (${Math.round(actualSourceX)}, ${Math.round(actualSourceY)})`);
+            } else {
+                // Use original parent position - but start from Y middle, not bottom  
+                actualSourceX = sourceX;
+                actualSourceY = d.source.y; // Y middle of parent, not bottom
+                console.log(`👤 Parent ${Nk.data.id} is single, using middle Y position: (${Math.round(actualSourceX)}, ${Math.round(actualSourceY)})`);
+            }
+            
+            // Tìm tất cả children ruột của Nk để tính x1, x2 (loại bỏ con dâu/rể)
+            const allChildren = Nk.children || [];
+            const children = allChildren.filter(child => {
+                const isInLaw = child.data.married_with && child.data.married_with !== null;
+                return !isInLaw; // Chỉ lấy con ruột
+            });
+            
+            console.log(`👨‍👩‍👧‍👦 Parent ${Nk.data.id} - All children: ${allChildren.length}, Biological children: ${children.length}`);
+            
+            if (children.length === 0) {
+                // Nếu không có con ruột, vẽ đường thẳng đơn giản từ actual source
+                console.log(`⚠️ No biological children for ${Nk.data.id}, drawing simple line`);
+                return `M${actualSourceX},${actualSourceY}L${targetX},${targetY}`;
+            }
+            
+            // Tính H_LINE_TO_PARENT.x1, H_LINE_TO_PARENT.x2 (từ actual source đến con cụ thể conX)
+            // x1: điểm bắt đầu (từ actual source position)
+            // x2: điểm kết thúc (đến con conX)
+            const actualSource_x = actualSourceX; // Vị trí X thực tế (có thể là middle point)
+            const conX_x = conX.x; // Vị trí X của con cụ thể
+            
+            // H_LINE_TO_PARENT coordinates - đường ngang từ actual source đến con
+            const H_LINE_TO_PARENT = {
+                x1: Math.min(actualSource_x, conX_x),  // Điểm bắt đầu (bên trái)
+                x2: Math.max(actualSource_x, conX_x)   // Điểm kết thúc (bên phải)
+            };
+            
+            // Tìm tất cả children ruột của Nk để xác định phạm vi con (dùng cho logic case)
+            const childrenX = children.map(child => child.x).sort((a, b) => a - b);
+            const Nk1_x = childrenX[0]; // Con ruột đầu của Nk
+            const NkEnd_x = childrenX[childrenX.length - 1]; // Con ruột cuối của Nk
+            
+            console.log(`📏 Parent ${Nk.data.id} biological children range: ${Nk1_x} to ${NkEnd_x}`);
+            
+            // Tính toán H_LINE_TO_PARENT.y theo thuật toán mới với actual source position
+            let H_LINE_TO_PARENT_y;
+            
+            // Case 1: Actual source nằm giữa 2 con ruột (Nk1.x <= actualSourceX <= Nk-End.x)
+            if (Nk1_x <= actualSource_x && actualSource_x <= NkEnd_x) {
+                // Y cao nhất: từ đáy của parent (không phải actualSourceY) + khoảng cách đến level con - boundary
+                const parentBottomY = Nk.y + sourceSettings.height / 2; // Bottom Y của parent
+                H_LINE_TO_PARENT_y = parentBottomY + Y_SPACE - boundY;
+                console.log(`📍 Case 1: Actual source (${Math.round(actualSource_x)}) nằm giữa con ruột đầu và cuối -> Y cao nhất: ${H_LINE_TO_PARENT_y} (parentBottomY=${parentBottomY} + Y_SPACE=${Y_SPACE} - boundY=${boundY})`);
+            }
+            // Case 2: Actual source nằm sau con ruột cuối
+            else if (actualSource_x > NkEnd_x) {
+                // Tìm trong ARRAY_H_LINE cùng deep, khác pidx, có LINE.x2 lớn nhất và >= H_LINE_TO_PARENT.x1
+                const relevantLines = ARRAY_H_LINE.filter(line => 
+                    line.deep === Nk.depth && line.pidx !== Nk.data.id && line.x2 >= H_LINE_TO_PARENT.x1
+                );
+                
+                if (relevantLines.length > 0) {
+                    // Tìm LINE có x2 lớn nhất
+                    const maxX2Line = relevantLines.reduce((max, line) => 
+                        line.x2 >= max.x2 ? line : max
+                    );
+                    H_LINE_TO_PARENT_y = maxX2Line.y + deltaY;
+                    console.log(`📍 Case 2a: Cha ${Nk.data.id} sau con ruột cuối, có LINE overlap -> Y = ${maxX2Line.y} + ${deltaY} = ${H_LINE_TO_PARENT_y}`);
+                } else {
+                    // Y nhỏ nhất có thể: từ đáy node Nk + boundary
+                    const sourceSettings = getLevelSettings(Nk.depth);
+                    
+                    //Tìm trong ARRAY_H_LINE, cùng pid, là anh đứng trước thì H_LINE_TO_PARENT_y bằng luôn y của anh em đó
+                    const siblingLine = ARRAY_H_LINE.find(line => line.pidx === Nk.data.id);
+                    if (siblingLine) {
+                        H_LINE_TO_PARENT_y = siblingLine.y;
+                        console.log(`📍 Case 2b: Cha ${Nk.data.id} sau con ruột cuối, không có LINE overlap -> Y nhỏ nhất: ${H_LINE_TO_PARENT_y} (siblingLine.y=${siblingLine.y})`);
+                    } else {
+                        H_LINE_TO_PARENT_y = Nk.y + sourceSettings.height/2 + boundY;
+                        console.log(`📍 Case 2b: Cha ${Nk.data.id} sau con ruột cuối, không có LINE overlap -> Y nhỏ nhất: ${H_LINE_TO_PARENT_y} (Nk.y=${Nk.y} + height/2=${sourceSettings.height/2} + boundY=${boundY})`);
+                    }
+                }
+            }
+            // Case 3: Actual source nằm trước con ruột đầu:
+            else if (actualSource_x < Nk1_x) {
+                // Tìm trong ARRAY_H_LINE cùng deep, khác pidx, có LINE.x2 lớn nhất và >= H_LINE_TO_PARENT.x1
+                const relevantLines = ARRAY_H_LINE.filter(line => 
+                    line.deep === Nk.depth && line.pidx !== Nk.data.id && line.x2 >= H_LINE_TO_PARENT.x1
+                );
+                
+                if (relevantLines.length > 0) {
+                    // Tìm LINE có x2 lớn nhất
+                    const maxX2Line = relevantLines.reduce((max, line) => 
+                        line.x2 >= max.x2 ? line : max
+                    );
+                    H_LINE_TO_PARENT_y = maxX2Line.y - deltaY;
+                    console.log(`📍 Case 3a: Cha ${Nk.data.id} trước con cuối, có LINE overlap -> Y = ${maxX2Line.y} - ${deltaY} = ${H_LINE_TO_PARENT_y}`);
+                } else {
+                    // Y lớn nhất có thể: từ đáy node Nk + khoảng cách đến level con - boundary
+                    const sourceSettings = getLevelSettings(Nk.depth);
+
+                    //Tìm thêm trong mảng có anh em đứng trước rồi thì lấy luôn y của anh em đó, ko phải tính lại
+                    const siblingLine = ARRAY_H_LINE.find(line => line.pidx === Nk.data.id);
+                    if (siblingLine) {
+                        H_LINE_TO_PARENT_y = siblingLine.y;
+                        console.log(`📍 Case 3b: Cha ${Nk.data.id} trước con ruột đầu, không có LINE overlap -> Y lớn nhất: ${H_LINE_TO_PARENT_y} (siblingLine.y=${siblingLine.y})`);
+                    } else {
+                        H_LINE_TO_PARENT_y = Nk.y + sourceSettings.height/2 + Y_SPACE - boundY;
+                        console.log(`📍 Case 3b: Cha ${Nk.data.id} trước con ruột đầu, không có LINE overlap -> Y lớn nhất: ${H_LINE_TO_PARENT_y} (Nk.y=${Nk.y} + height/2=${sourceSettings.height/2} + Y_SPACE=${Y_SPACE} - boundY=${boundY})`);
+                    }
+                }
+            }
+            // Default case (không nên xảy ra)
+            else {
+                const sourceSettings = getLevelSettings(Nk.depth);
+                H_LINE_TO_PARENT_y = Nk.y + sourceSettings.height/2 + boundY;
+                console.log(`📍 Default case: Cha ${Nk.data.id} -> Y mặc định: ${H_LINE_TO_PARENT_y} (Nk.y=${Nk.y} + height/2=${sourceSettings.height/2} + boundY=${boundY})`);
+            }
+            
+            // Lưu H_LINE_TO_PARENT vào ARRAY_H_LINE theo format: {childId, deep, pidx, y, x1, x2}
+            const newLine = {
+                childId: conX.data.id,    // ID của con cụ thể
+                deep: Nk.depth,           // Level của cha
+                pidx: Nk.data.id,         // ID của cha
+                y: H_LINE_TO_PARENT_y,    // Y của đường ngang
+                x1: H_LINE_TO_PARENT.x1,  // Điểm x bắt đầu
+                x2: H_LINE_TO_PARENT.x2   // Điểm x kết thúc
+            };
+            
+            // Kiểm tra xem đã có line cho cặp parent-child này chưa
+            const existingIndex = ARRAY_H_LINE.findIndex(line => 
+                line.deep === Nk.depth && line.pidx === Nk.data.id && line.childId === conX.data.id
+            );
+            if (existingIndex >= 0) {
+                ARRAY_H_LINE[existingIndex] = newLine;
+                console.log(`🔄 Updated ARRAY_H_LINE[${existingIndex}]:`, newLine);
+            } else {
+                ARRAY_H_LINE.push(newLine);
+                console.log(`➕ Added to ARRAY_H_LINE[${ARRAY_H_LINE.length - 1}]:`, newLine);
+            }
+            
+            console.log(`📊 Current ARRAY_H_LINE state:`, ARRAY_H_LINE);
+            
+            return `M${actualSourceX},${actualSourceY}
+                    L${actualSourceX},${H_LINE_TO_PARENT_y}
+                    L${targetX},${H_LINE_TO_PARENT_y}
+                    L${targetX},${targetY}`;
+        }
+
+        // Simple Tooltip Functions
+        function showSimpleTooltip(event, d) {
+            const tooltip = document.getElementById('simple-tooltip');
+            const person = d.data;
+            
+            console.log("🔍 Simple approach - using mouse position");
+            
+            if (!tooltip) {
+                console.error("❌ Tooltip element not found!");
+                return;
+            }
+            
+            // Create tooltip content - 1 dòng duy nhất
+            let content = `<strong>${person.name || 'Không rõ tên'}</strong> • `;
+            content += `Level: ${d.depth + 1} • `;
+            content += `ID: ${person.id || 'N/A'}`;
+            if (person.birth_date) content += ` • Sinh: ${person.birth_date}`;
+            if (person.death_date) content += ` • Mất: ${person.death_date}`;
+            content += ` • Vị trí: (${Math.round(d.x)}, ${Math.round(d.y)})`;
+            
+            // Simple mouse-based positioning
+            tooltip.innerHTML = content;
+            tooltip.style.left = (event.clientX + 15) + 'px';
+            tooltip.style.top = (event.clientY + 20) + 'px';  // Bên dưới mouse thay vì phía trên
+            tooltip.style.display = 'block';
+            tooltip.style.visibility = 'visible';
+            tooltip.style.opacity = '1';
+            tooltip.style.backgroundColor = '#f8f9fa';  // Light background
+            tooltip.style.color = '#333';             // Dark text
+            tooltip.style.border = '1px solid #ddd';  // Light border
+            tooltip.style.zIndex = '99999';          // Even higher z-index
+            
+            console.log("✅ Tooltip shown below mouse at:", event.clientX + 15, event.clientY + 20);
+            console.log("📋 Tooltip element styles:", {
+                display: tooltip.style.display,
+                left: tooltip.style.left,
+                top: tooltip.style.top,
+                zIndex: tooltip.style.zIndex
+            });
+        }
+        
+        function hideSimpleTooltip() {
+            const tooltip = document.getElementById('simple-tooltip');
+            tooltip.style.display = 'none';
+            console.log("❌ Simple tooltip hidden");
+        }
+
+        // Highlight functions cho parent-child links - Version 2.0 với clone
+        function highlightParentChildLinks(parentNode) {
+            if (!parentNode.children || parentNode.children.length === 0) return;
+            
+            // Filter chỉ lấy con ruột (không có married_with)
+            const biologicalChildren = parentNode.children.filter(child => {
+                const isInLaw = child.data.married_with && child.data.married_with !== null;
+                return !isInLaw;
+            });
+            
+            if (biologicalChildren.length === 0) return;
+            
+            console.log(`🔴 Highlighting ${biologicalChildren.length} red links from ${parentNode.data.name} (chỉ con ruột) - using clone method`);
+            
+            // Tạo group cho highlight links với z-index cao
+            const highlightGroup = g.append("g")
+                .attr("class", "highlight-links-group red-links");
+            
+            // Clone và style lại từng link thay vì vẽ mới
+            biologicalChildren.forEach(child => {
+                const linkId = `link-${parentNode.data.id}-to-${child.data.id}`;
+                const originalLink = g.select(`#${linkId}`);
+                
+                if (!originalLink.empty()) {
+                    // Clone link gốc và apply style đỏ
+                    const clonedLink = highlightGroup.append("path")
+                        .attr("class", "highlight-link red-link")
+                        .attr("d", originalLink.attr("d")) // Sử dụng path của link gốc
+                        .style("fill", "none")
+                        .style("stroke", "#ff0000")
+                        .style("stroke-width", 4)
+                        .style("opacity", 0)
+                        .style("pointer-events", "none");
+                    
+                    // Fade in animation
+                    clonedLink.transition()
+                        .duration(200)
+                        .style("opacity", 0.8);
+                        
+                    console.log(`🔴 Cloned link: ${linkId}`);
+                } else {
+                    console.warn(`⚠️ Link not found: ${linkId}`);
+                }
+            });
+            
+            console.log(`🔴 Drew ${biologicalChildren.length} red highlight links (clone method)`);
+        }
+        
+        function highlightChildParentLink(childNode) {
+            if (!childNode.parent) return;
+            
+            // Chỉ highlight nếu child là con ruột (không có married_with)
+            const isInLaw = childNode.data.married_with && childNode.data.married_with !== null;
+            if (isInLaw) {
+                console.log(`� Skipping blue link from ${childNode.data.name} - là con dâu/rể`);
+                return;
+            }
+            
+            console.log(`�🔵 Highlighting blue link from ${childNode.data.name} (con ruột) to parent ${childNode.parent.data.name}`);
+            
+            // Tạo group cho highlight link xanh
+            const highlightGroup = g.append("g")
+                .attr("class", "highlight-links-group blue-links");
+            
+            // Clone link từ parent đến child
+            const linkId = `link-${childNode.parent.data.id}-to-${childNode.data.id}`;
+            const originalLink = g.select(`#${linkId}`);
+            
+            if (!originalLink.empty()) {
+                // Clone link gốc và apply style xanh
+                const clonedLink = highlightGroup.append("path")
+                    .attr("class", "highlight-link blue-link")
+                    .attr("d", originalLink.attr("d")) // Sử dụng path của link gốc
+                    .style("fill", "none")
+                    .style("stroke", "#0066ff")  // Màu xanh
+                    .style("stroke-width", 4)
+                    .style("opacity", 0)
+                    .style("pointer-events", "none");
+                
+                // Fade in animation
+                clonedLink.transition()
+                    .duration(200)
+                    .style("opacity", 0.8);
+                    
+                console.log(`🔵 Cloned blue link: ${linkId}`);
+            } else {
+                console.warn(`⚠️ Blue link not found: ${linkId}`);
+            }
+            
+            console.log(`🔵 Drew blue highlight link to parent (clone method)`);
+        }
+        
+        function clearHighlightedLinks() {
+            // Fade out và xóa tất cả đường highlight (cả đỏ và xanh)
+            g.selectAll(".highlight-links-group")
+                .transition()
+                .duration(150)
+                .style("opacity", 0)
+                .remove();
+            
+            console.log("⚪ Cleared all highlight links");
+        }
+
+        function drawMarriageLinks() {
+            const marriages = [];
+            const processed = new Set();
+
+            familyData.forEach(person => {
+                if (person.married_with && !processed.has(`${person.id}-${person.married_with}`)) {
+                    const spouse = familyData.find(p => p.id === person.married_with);
+                    if (spouse) {
+                        marriages.push({person, spouse});
+                        processed.add(`${person.id}-${person.married_with}`);
+                        processed.add(`${person.married_with}-${person.id}`);
+                    }
+                }
+            });
+
+            marriages.forEach(marriage => {
+                const node1 = root.descendants().find(d => d.data.id === marriage.person.id);
+                const node2 = root.descendants().find(d => d.data.id === marriage.spouse.id);
+
+                if (node1 && node2) {
+                    g.append("line")
+                        .attr("class", "marriage-link")
+                        .attr("x1", node1.x)
+                        .attr("y1", node1.y)
+                        .attr("x2", node2.x)
+                        .attr("y2", node2.y);
+                }
+            });
+        }
+
+        function addAdditionalInfo(nodes) {
+            const lineHeight = 14;
+
+            // Helper function to check if a display option is enabled for a specific level
+            function shouldShowForLevel(level, optionName) {
+                const levelSettings = getLevelSettings(level);
+                const displayOptions = levelSettings.displayOptions || {};
+                
+                // If level has specific setting, use it; otherwise use global setting
+                if (displayOptions[optionName] !== undefined) {
+                    return displayOptions[optionName];
+                }
+                
+                // Fall back to global settings
+                switch(optionName) {
+                    case 'showTitle': return document.getElementById('showTitle').checked;
+                    case 'showBirthday': return document.getElementById('showBirthday').checked;
+                    case 'showDeathDate': return document.getElementById('showDeathDate').checked;
+                    case 'showImage': return document.getElementById('showImage').checked;
+                    default: return false;
+                }
+            }
+
+            // Show title if enabled for this level
+            nodes.filter(d => d.data.title && shouldShowForLevel(d.depth, 'showTitle'))
+                .append("text")
+                .attr("class", "person-info")
+                .attr("text-anchor", "middle")
+                .attr("transform", d => {
+                    const settings = getLevelSettings(d.depth);
+                    const rotation = getTextRotation(d.depth);
+                    const x = settings.width / 2;
+                    const y = settings.height / 2 + 20;
+                    return getSVGTextTransform(rotation, x, y);
+                })
+                .text(d => truncateText(d.data.title, 16));
+
+            // Show birthday if enabled for this level
+            nodes.filter(d => d.data.birthday && shouldShowForLevel(d.depth, 'showBirthday'))
+                .append("text")
+                .attr("class", "person-info")
+                .attr("text-anchor", "middle")
+                .attr("transform", d => {
+                    const settings = getLevelSettings(d.depth);
+                    const rotation = getTextRotation(d.depth);
+                    let yPos = settings.height / 2 + 20;
+                    if (d.data.title && shouldShowForLevel(d.depth, 'showTitle')) {
+                        yPos += lineHeight;
+                    }
+                    const x = settings.width / 2;
+                    return getSVGTextTransform(rotation, x, yPos);
+                })
+                .text(d => formatDate(d.data.birthday));
+
+            // Show death date if enabled for this level
+            nodes.filter(d => d.data.date_of_death && shouldShowForLevel(d.depth, 'showDeathDate'))
+                .append("text")
+                .attr("class", "person-info")
+                .attr("text-anchor", "middle")
+                .attr("transform", d => {
+                    const settings = getLevelSettings(d.depth);
+                    const rotation = getTextRotation(d.depth);
+                    let yPos = settings.height / 2 + 20;
+                    if (d.data.title && shouldShowForLevel(d.depth, 'showTitle')) {
+                        yPos += lineHeight;
+                    }
+                    if (d.data.birthday && shouldShowForLevel(d.depth, 'showBirthday')) {
+                        yPos += lineHeight;
+                    }
+                    const x = settings.width / 2;
+                    return getSVGTextTransform(rotation, x, yPos);
+                })
+                .text(d => "✝ " + formatDate(d.data.date_of_death));
+
+            // Show image icon if enabled for this level
+            nodes.filter(d => d.data._image_list && shouldShowForLevel(d.depth, 'showImage'))
+                .append("text")
+                .attr("class", "person-info")
+                .attr("text-anchor", "middle")
+                .attr("transform", d => {
+                    const settings = getLevelSettings(d.depth);
+                    const rotation = getTextRotation(d.depth);
+                    let yPos = settings.height / 2 + 20;
+                    if (d.data.title && shouldShowForLevel(d.depth, 'showTitle')) {
+                        yPos += lineHeight;
+                    }
+                    if (d.data.birthday && shouldShowForLevel(d.depth, 'showBirthday')) {
+                        yPos += lineHeight;
+                    }
+                    if (d.data.date_of_death && shouldShowForLevel(d.depth, 'showDeathDate')) {
+                        yPos += lineHeight;
+                    }
+                    const x = settings.width / 2;
+                    return getSVGTextTransform(rotation, x, yPos);
+                })
+                .text("📷");
+        }
+
+        // New TextInfo container system with centered layout
+        function addTextInfoContainer(nodes) {
+            const lineHeight = 16; // Standard line height for text spacing
+            
+            // Helper function to check if a display option is enabled for a specific level
+            function shouldShowForLevel(level, optionName) {
+                const levelSettings = getLevelSettings(level);
+                const displayOptions = levelSettings.displayOptions || {};
+                
+                // If level has specific setting, use it; otherwise use global setting
+                if (displayOptions[optionName] !== undefined) {
+                    return displayOptions[optionName];
+                }
+                
+                // Fall back to global settings
+                switch(optionName) {
+                    case 'showTitle': return document.getElementById('showTitle').checked;
+                    case 'showBirthday': return document.getElementById('showBirthday').checked;
+                    case 'showDeathDate': return document.getElementById('showDeathDate').checked;
+                    case 'showImage': return document.getElementById('showImage').checked;
+                    default: return false;
+                }
+            }
+
+            nodes.each(function(d) {
+                const nodeGroup = d3.select(this);
+                const settings = getLevelSettings(d.depth);
+                const rotation = getTextRotation(d.depth);
+                
+                // Determine which lines to show based on settings
+                const showTitle = shouldShowForLevel(d.depth, 'showTitle');
+                const showBirthday = shouldShowForLevel(d.depth, 'showBirthday');
+                
+                // Create text content array - always reserve lines even if empty
+                const textLines = [];
+                
+                // Line 1: Name (always shown)
+                textLines.push({
+                    content: truncateText(d.data.name || "Unknown", 20),
+                    class: "person-name",
+                    style: { fontSize: "13px", fontWeight: "bold", fill: "#2c3e50" }
+                });
+                
+                // Line 2: Title (show if enabled, empty if disabled or no content)
+                if (showTitle) {
+                    textLines.push({
+                        content: d.data.title ? truncateText(d.data.title, 18) : "",
+                        class: "person-title",
+                        style: { fontSize: "11px", fontWeight: "normal", fill: "#7f8c8d" }
+                    });
+                }
+                
+                // Line 3: Birthday (show if enabled, empty if disabled or no content)
+                if (showBirthday) {
+                    textLines.push({
+                        content: d.data.birthday ? formatDate(d.data.birthday) : "",
+                        class: "person-birthday",
+                        style: { fontSize: "11px", fontWeight: "normal", fill: "#7f8c8d" }
+                    });
+                }
+                
+                // Calculate TextInfo container dimensions and position
+                const numLines = textLines.length;
+                const isVertical = rotation === 'vertical-top' || rotation === 'vertical-bottom';
+                
+                // For vertical text, lines are spaced horizontally (X-axis) after rotation
+                // For horizontal text, lines are spaced vertically (Y-axis)
+                const lineSpacing = lineHeight;
+                const containerSize = numLines * lineSpacing;
+                
+                // Center the TextInfo container within the node
+                const centerX = settings.width / 2;
+                const centerY = settings.height / 2;
+                
+                // Create a group for TextInfo container (for future styling/debugging)
+                const textInfoGroup = nodeGroup.append("g")
+                    .attr("class", "text-info-container");
+                
+                // Add each text line with proper spacing for rotation
+                textLines.forEach((line, index) => {
+                    let textX, textY;
+                    let effectiveIndex = index;
+                    
+                    if (isVertical) {
+                        // For vertical-bottom (rotate 90°), reverse the line order 
+                        // so Name appears at top after rotation
+                        if (rotation === 'vertical-bottom') {
+                            effectiveIndex = numLines - 1 - index;
+                        }
+                        
+                        // For vertical text: spread lines along X-axis (becomes Y-axis after rotation)
+                        textX = centerX - (containerSize / 2) + (effectiveIndex * lineSpacing) + (lineSpacing / 2);
+                        textY = centerY;
+                        
+                        console.log(`📝 Vertical text line ${index + 1}/${numLines} for ${d.data.name}: "${line.content}" at X=${Math.round(textX)} (effectiveIndex=${effectiveIndex}, rotation=${rotation})`);
+                    } else {
+                        // For horizontal text: spread lines along Y-axis normally
+                        textX = centerX;
+                        textY = centerY - (containerSize / 2) + (index * lineSpacing) + (lineSpacing / 2);
+                        
+                        console.log(`📝 Horizontal text line ${index + 1}/${numLines} for ${d.data.name}: "${line.content}" at Y=${Math.round(textY)}`);
+                    }
+                    
+                    const textElement = textInfoGroup.append("text")
+                        .attr("class", line.class)
+                        .attr("text-anchor", "middle")
+                        .attr("dominant-baseline", "middle")
+                        .attr("transform", getSVGTextTransform(rotation, textX, textY))
+                        .text(line.content);
+                    
+                    // Apply styling
+                    Object.keys(line.style).forEach(styleKey => {
+                        textElement.attr(styleKey.replace(/([A-Z])/g, '-$1').toLowerCase(), line.style[styleKey]);
+                    });
+                });
+                
+                console.log(`📦 TextInfo container for ${d.data.name}: ${numLines} lines, containerSize=${containerSize}px, centered at (${Math.round(centerX)}, ${Math.round(centerY)}), rotation=${rotation}`);
+            });
+        }
+
+        function selectPerson(person) {
+            console.log("Selected:", person.name);
+        }
+
+        function searchPerson(query) {
+            // Implementation for search
+        }
+
+        function updateStats() {
+            const total = familyData.length;
+            const male = familyData.filter(p => p.gender === 1).length;
+            const female = familyData.filter(p => p.gender === 2).length;
+            const deceased = familyData.filter(p => p.date_of_death).length;
+
+            document.getElementById('totalCount').textContent = total;
+            document.getElementById('maleCount').textContent = male;
+            document.getElementById('femaleCount').textContent = female;
+            document.getElementById('deceasedCount').textContent = deceased;
+        }
+
+        // Utility functions
+        function getGenderClass(person) {
+            if (person.gender === 1) return 'male';
+            if (person.gender === 2) return 'female';
+            return 'unknown';
+        }
+
+        function truncateText(text, maxLength) {
+            if (!text) return '';
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('vi-VN');
+        }
+
+        // Control functions
+        function zoomIn() {
+            svg.transition().call(zoom.scaleBy, 1.5);
+        }
+
+        function zoomOut() {
+            svg.transition().call(zoom.scaleBy, 1 / 1.5);
+        }
+
+        function resetZoom() {
+            svg.transition().call(zoom.transform, d3.zoomIdentity);
+        }
+
+        function centerTree() {
+            if (!root) return;
+            const bounds = g.node().getBBox();
+            const fullWidth = width, fullHeight = height;
+            const widthScale = fullWidth / bounds.width;
+            const heightScale = fullHeight / bounds.height;
+            const scale = Math.min(widthScale, heightScale) * 0.8;
+            const translate = [fullWidth / 2 - scale * (bounds.x + bounds.width / 2), 
+                              fullHeight / 2 - scale * (bounds.y + bounds.height / 2)];
+
+            svg.transition()
+                .duration(750)
+                .call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+        }
+
+        function exportFullSVG() {
+            // Tạo SVG mới với toàn bộ cây
+            const fullSVG = createFullTreeSVG();
+            if (!fullSVG) {
+                alert("❌ Không có dữ liệu để xuất!");
+                return;
+            }
+            
+            // Tạo CSS styles
+            const cssStyles = `
+                <style>
+                <![CDATA[
+                .tree-link { fill: none; stroke: #7f8c8d; stroke-width: 2; }
+                .marriage-link { stroke: #e74c3c; stroke-width: 3; stroke-dasharray: 8,4; }
+                .person-rect { rx: 8; ry: 8; fill: white; stroke-width: 3; }
+                .person-rect.male { stroke: #3498db; }
+                .person-rect.female { stroke: #e91e63; }
+                .person-rect.unknown { stroke: #95a5a6; }
+                .person-rect.deceased { stroke: #7f8c8d; stroke-dasharray: 8,4; }
+                .person-rect.in-law { stroke: #f39c12; stroke-width: 4; }
+                .person-rect.second-marriage-child { stroke: #9b59b6; stroke-width: 4; }
+                .person-name { fill: #2c3e50; font-weight: bold; font-size: 13px; text-anchor: middle; dominant-baseline: middle; font-family: Arial, sans-serif; }
+                .person-info { fill: #7f8c8d; font-size: 11px; text-anchor: middle; font-family: Arial, sans-serif; }
+                ]]>
+                </style>
+            `;
+            
+            fullSVG.insertAdjacentHTML('afterbegin', cssStyles);
+            fullSVG.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            fullSVG.setAttribute('version', '1.1');
+            
+            // Download
+            const svgData = new XMLSerializer().serializeToString(fullSVG);
+            const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `family-tree-full-${new Date().toISOString().slice(0,10)}.svg`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            console.log("✅ Đã xuất TOÀN BỘ cây gia phả!");
+        }
+
+        // Export SVG chuẩn cho draw.io
+        function exportDrawIOSVG() {
+            const drawioSVG = createDrawIOCompatibleSVG();
+            if (!drawioSVG) {
+                alert("❌ Không có dữ liệu để xuất!");
+                return;
+            }
+            
+            // Download
+            const svgData = new XMLSerializer().serializeToString(drawioSVG);
+            const blob = new Blob([svgData], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `family-tree-drawio-${new Date().toISOString().slice(0,10)}.svg`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            console.log("✅ Đã xuất SVG cho draw.io!");
+        }
+
+        // Export SVG chuẩn cho CorelDRAW
+        function exportCorelDrawSVG() {
+            const corelSVG = createCorelDrawCompatibleSVG();
+            if (!corelSVG) {
+                alert("❌ Không có dữ liệu để xuất!");
+                return;
+            }
+            
+            // Download
+            const blob = new Blob([corelSVG], {type: "image/svg+xml;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `family-tree-corel-${new Date().toISOString().slice(0,10)}.svg`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            console.log("✅ Đã xuất SVG cho CorelDRAW!");
+        }
+
+        // Export theo format mxGraph cho draw.io (chuẩn draw.io)
+        function exportDrawIOXML() {
+            try {
+                const drawioXML = createDrawIOXML();
+                if (!drawioXML) {
+                    alert("❌ Không có dữ liệu để xuất!");
+                    return;
+                }
+                
+                // Download
+                const blob = new Blob([drawioXML], {type: "application/xml;charset=utf-8"});
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = `family-tree-drawio-${new Date().toISOString().slice(0,10)}.drawio`;
+                link.click();
+                URL.revokeObjectURL(url);
+                
+                console.log("✅ Đã xuất file Draw.io XML!");
+            } catch (error) {
+                console.error("❌ Lỗi khi xuất Draw.io XML:", error);
+                alert("❌ Lỗi khi xuất file: " + error.message);
+            }
+        }
+
+        function createFullTreeSVG() {
+            if (!root) return null;
+            
+            // Tính toán kích thước toàn bộ cây sử dụng dynamic settings
+            const nodes = root.descendants();
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            
+            nodes.forEach(node => {
+                const settings = getLevelSettings(node.depth);
+                minX = Math.min(minX, node.x - settings.width/2);
+                maxX = Math.max(maxX, node.x + settings.width/2);
+                minY = Math.min(minY, node.y - settings.height/2);
+                maxY = Math.max(maxY, node.y + settings.height/2);
+            });
+            
+            // Thêm margin
+            const margin = 50;
+            const svgWidth = maxX - minX + 2 * margin;
+            const svgHeight = maxY - minY + 2 * margin;
+            const offsetX = -minX + margin;
+            const offsetY = -minY + margin;
+            
+            // Tạo SVG mới
+            const newSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            newSVG.setAttribute("width", svgWidth);
+            newSVG.setAttribute("height", svgHeight);
+            newSVG.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+            
+            const newG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            newG.setAttribute("transform", `translate(${offsetX}, ${offsetY})`);
+            newSVG.appendChild(newG);
+            
+            // Vẽ links - Chỉ nối con ruột (biological links)
+            const biologicalLinks = root.links().filter(link => {
+                // Chỉ giữ lại các liên kết đến con ruột (không phải dâu/rể)
+                return !link.target.data.married_with || link.target.data.married_with === null;
+            });
+            
+            // Reset và xây dựng lại ARRAY_H_LINE cho export
+            const originalArrayHLine = [...ARRAY_H_LINE]; // Backup
+            ARRAY_H_LINE = [];
+            
+            // Chạy lại customTreeLayout để đảm bảo tree layout đúng
+            customTreeLayout(root);
+            
+            // Xây dựng ARRAY_H_LINE và lưu paths một lần duy nhất
+            const sortedLinks = biologicalLinks.sort((a, b) => a.target.depth - b.target.depth);
+            console.log(`🔧 Export: Building ARRAY_H_LINE for ${sortedLinks.length} biological links`);
+            
+            // Tính toán và lưu trữ paths
+            const linkPaths = new Map();
+            
+            // Phase 1: Build ARRAY_H_LINE và tạo paths
+            sortedLinks.forEach(link => {
+                const pathD = customLinkPath(link); // Gọi 1 lần duy nhất và lưu kết quả
+                const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                linkPaths.set(linkKey, pathD);
+                console.log(`📝 Export: Saved path for ${link.source.data.name} -> ${link.target.data.name}`);
+            });
+            
+            console.log(`📊 Export: ARRAY_H_LINE built with ${ARRAY_H_LINE.length} entries:`, ARRAY_H_LINE);
+            console.log(`📦 Export: Saved ${linkPaths.size} link paths`);
+            
+            // Phase 2: Tạo SVG paths từ kết quả đã lưu
+            biologicalLinks.forEach(link => {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("class", "tree-link");
+                
+                const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                const pathD = linkPaths.get(linkKey);
+                
+                if (pathD) {
+                    path.setAttribute("d", pathD);
+                    newG.appendChild(path);
+                    console.log(`✏️ Export: Used saved path for ${link.source.data.name} -> ${link.target.data.name}`);
+                } else {
+                    console.error(`❌ Export: No saved path found for ${linkKey}`);
+                }
+            });
+            
+            // Khôi phục ARRAY_H_LINE gốc sau khi đã tạo xong tất cả paths
+            ARRAY_H_LINE = originalArrayHLine;
+            
+            // Vẽ nodes với kích thước dynamic
+            nodes.forEach(node => {
+                const settings = getLevelSettings(node.depth);
+                const displayOptions = getDisplayOptions(node.depth);
+                const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                nodeGroup.setAttribute("class", "person-node");
+                nodeGroup.setAttribute("transform", `translate(${node.x - settings.width/2}, ${node.y - settings.height/2})`);
+                
+                // Rectangle với kích thước dynamic
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                let classes = `person-rect ${getGenderClass(node.data)} ${node.data.date_of_death ? 'deceased' : ''}`;
+                rect.setAttribute("class", classes);
+                rect.setAttribute("width", settings.width);
+                rect.setAttribute("height", settings.height);
+                nodeGroup.appendChild(rect);
+                
+                // Name text với rotation
+                const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                const textRotation = getTextRotation(node.depth);
+                nameText.setAttribute("class", "person-name");
+                nameText.setAttribute("text-anchor", "middle");
+                nameText.setAttribute("dominant-baseline", "middle");
+                
+                const nameX = settings.width / 2;
+                const nameY = settings.height / 2;
+                nameText.setAttribute("transform", getSVGTextTransform(textRotation, nameX, nameY));
+                nameText.textContent = truncateText(node.data.name, 20);
+                nodeGroup.appendChild(nameText);
+                
+                // Add additional info based on per-level options
+                let yPos = settings.height / 2 + 20;
+                const lineHeight = 14;
+
+                // Show title if option is checked for this level
+                if (displayOptions.showTitle && node.data.title) {
+                    const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    const textRotation = getTextRotation(node.depth);
+                    titleText.setAttribute("class", "person-info");
+                    titleText.setAttribute("text-anchor", "middle");
+                    
+                    const titleX = settings.width / 2;
+                    titleText.setAttribute("transform", getSVGTextTransform(textRotation, titleX, yPos));
+                    titleText.textContent = truncateText(node.data.title, 16);
+                    nodeGroup.appendChild(titleText);
+                    yPos += lineHeight;
+                }
+
+                // Show birthday if option is checked for this level
+                if (displayOptions.showBirthday && node.data.birthday) {
+                    const birthdayText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    const textRotation = getTextRotation(node.depth);
+                    birthdayText.setAttribute("class", "person-info");
+                    birthdayText.setAttribute("text-anchor", "middle");
+                    
+                    const birthdayX = settings.width / 2;
+                    birthdayText.setAttribute("transform", getSVGTextTransform(textRotation, birthdayX, yPos));
+                    birthdayText.textContent = formatDate(node.data.birthday);
+                    nodeGroup.appendChild(birthdayText);
+                    yPos += lineHeight;
+                }
+
+                // Show death date if option is checked for this level
+                if (displayOptions.showDeathDate && node.data.date_of_death) {
+                    const deathText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    const textRotation = getTextRotation(node.depth);
+                    deathText.setAttribute("class", "person-info");
+                    deathText.setAttribute("text-anchor", "middle");
+                    
+                    const deathX = settings.width / 2;
+                    deathText.setAttribute("transform", getSVGTextTransform(textRotation, deathX, yPos));
+                    deathText.textContent = "✝ " + formatDate(node.data.date_of_death);
+                    nodeGroup.appendChild(deathText);
+                    yPos += lineHeight;
+                }
+
+                // Show image if option is checked for this level (simplified as text indicator)
+                if (displayOptions.showImage && node.data._image_list) {
+                    const imageText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    const textRotation = getTextRotation(node.depth);
+                    imageText.setAttribute("class", "person-info");
+                    imageText.setAttribute("text-anchor", "middle");
+                    
+                    const imageX = settings.width / 2;
+                    imageText.setAttribute("transform", getSVGTextTransform(textRotation, imageX, yPos));
+                    imageText.textContent = "📷";
+                    nodeGroup.appendChild(imageText);
+                    yPos += lineHeight;
+                }
+                
+                newG.appendChild(nodeGroup);
+            });
+            
+            return newSVG;
+        }
+
+        // Helper function to detect marriage links in nodes
+        function detectMarriageLinks(nodes) {
+            const marriages = [];
+            const processed = new Set();
+
+            familyData.forEach(person => {
+                if (person.married_with && !processed.has(`${person.id}-${person.married_with}`)) {
+                    const spouse = familyData.find(p => p.id === person.married_with);
+                    if (spouse) {
+                        marriages.push({person, spouse});
+                        processed.add(`${person.id}-${person.married_with}`);
+                        processed.add(`${person.married_with}-${person.id}`);
+                    }
+                }
+            });
+            
+            // Filter marriage links that exist in our node tree
+            const marriageLinks = [];
+            marriages.forEach(marriage => {
+                const node1 = nodes.find(d => d.data.id === marriage.person.id);
+                const node2 = nodes.find(d => d.data.id === marriage.spouse.id);
+                if (node1 && node2) {
+                    marriageLinks.push({source: node1, target: node2, person: node1, spouse: node2});
+                }
+            });
+            
+            return marriageLinks;
+        }
+
+        // Tạo SVG chuẩn cho draw.io với inline styles và cấu trúc đơn giản
+        function createDrawIOCompatibleSVG() {
+            if (!root) return null;
+            
+            // Tính toán kích thước toàn bộ cây sử dụng dynamic settings
+            const nodes = root.descendants();
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            
+            nodes.forEach(node => {
+                const settings = getLevelSettings(node.depth);
+                minX = Math.min(minX, node.x - settings.width/2);
+                maxX = Math.max(maxX, node.x + settings.width/2);
+                minY = Math.min(minY, node.y - settings.height/2);
+                maxY = Math.max(maxY, node.y + settings.height/2);
+            });
+            
+            // Thêm margin
+            const margin = 50;
+            const svgWidth = maxX - minX + 2 * margin;
+            const svgHeight = maxY - minY + 2 * margin;
+            const offsetX = -minX + margin;
+            const offsetY = -minY + margin;
+            
+            // Tạo SVG mới với namespaces chuẩn
+            const newSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            newSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            newSVG.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+            newSVG.setAttribute("version", "1.1");
+            newSVG.setAttribute("width", svgWidth);
+            newSVG.setAttribute("height", svgHeight);
+            newSVG.setAttribute("viewBox", `0 0 ${svgWidth} ${svgHeight}`);
+            
+            // Tạo defs cho patterns và gradients (draw.io cần)
+            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            newSVG.appendChild(defs);
+            
+            const newG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            newG.setAttribute("transform", `translate(${offsetX}, ${offsetY})`);
+            newSVG.appendChild(newG);
+            
+            // Vẽ links - Chỉ nối con ruột (biological links)
+            const biologicalLinks = root.links().filter(link => {
+                return !link.target.data.married_with || link.target.data.married_with === null;
+            });
+            
+            // Reset và xây dựng lại ARRAY_H_LINE cho export
+            const originalArrayHLine = [...ARRAY_H_LINE];
+            ARRAY_H_LINE = [];
+            customTreeLayout(root);
+            
+            // Xây dựng ARRAY_H_LINE và lưu paths
+            const sortedLinks = biologicalLinks.sort((a, b) => a.target.depth - b.target.depth);
+            const linkPaths = new Map();
+            
+            sortedLinks.forEach(link => {
+                const pathD = customLinkPath(link);
+                const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                linkPaths.set(linkKey, pathD);
+            });
+            
+            // Tạo SVG paths với inline styles (draw.io compatible)
+            biologicalLinks.forEach(link => {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                const pathD = linkPaths.get(linkKey);
+                
+                if (pathD) {
+                    path.setAttribute("d", pathD);
+                    // Inline styles thay vì CSS classes
+                    path.setAttribute("fill", "none");
+                    path.setAttribute("stroke", "#7f8c8d");
+                    path.setAttribute("stroke-width", "2");
+                    path.setAttribute("id", `link-${link.source.data.id}-${link.target.data.id}`);
+                    newG.appendChild(path);
+                }
+            });
+            
+            // Thêm marriage links trước khi vẽ nodes (để không đè lên nodes)
+            const marriageLinks = detectMarriageLinks(nodes);
+            marriageLinks.forEach(marriageLink => {
+                const x1 = marriageLink.person.x;
+                const y1 = marriageLink.person.y;
+                const x2 = marriageLink.spouse.x;
+                const y2 = marriageLink.spouse.y;
+                
+                // Tạo đường ngang nối vợ chồng - send to back
+                const marriageLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                marriageLine.setAttribute("x1", x1);
+                marriageLine.setAttribute("y1", y1);
+                marriageLine.setAttribute("x2", x2);
+                marriageLine.setAttribute("y2", y2);
+                marriageLine.setAttribute("stroke", "#e74c3c");
+                marriageLine.setAttribute("stroke-width", "3");
+                marriageLine.setAttribute("stroke-dasharray", "8,4");
+                marriageLine.setAttribute("style", "z-index: -1;");
+                marriageLine.setAttribute("id", `marriage-${marriageLink.person.data.id}-${marriageLink.spouse.data.id}`);
+                newG.appendChild(marriageLine);
+            });
+            
+            // Khôi phục ARRAY_H_LINE gốc
+            ARRAY_H_LINE = originalArrayHLine;
+            
+            // Vẽ nodes với inline styles
+            nodes.forEach(node => {
+                const settings = getLevelSettings(node.depth);
+                const displayOptions = getDisplayOptions(node.depth);
+                
+                // Tạo group cho node
+                const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                nodeGroup.setAttribute("id", `node-${node.data.id}`);
+                nodeGroup.setAttribute("transform", `translate(${node.x - settings.width/2}, ${node.y - settings.height/2})`);
+                
+                // Rectangle với inline styles
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("width", settings.width);
+                rect.setAttribute("height", settings.height);
+                rect.setAttribute("rx", "8");
+                rect.setAttribute("ry", "8");
+                rect.setAttribute("fill", "white");
+                rect.setAttribute("stroke-width", "3");
+                
+                // Gender-based stroke color
+                let strokeColor = "#95a5a6"; // unknown
+                if (node.data.gender === 1) strokeColor = "#3498db"; // male
+                else if (node.data.gender === 2) strokeColor = "#e91e63"; // female
+                
+                rect.setAttribute("stroke", strokeColor);
+                
+                // Deceased style
+                if (node.data.date_of_death) {
+                    rect.setAttribute("stroke", "#7f8c8d");
+                    rect.setAttribute("stroke-dasharray", "8,4");
+                }
+                
+                nodeGroup.appendChild(rect);
+                
+                // Name text với inline styles
+                const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                const textRotation = getTextRotation(node.depth);
+                nameText.setAttribute("fill", "#2c3e50");
+                nameText.setAttribute("font-weight", "bold");
+                nameText.setAttribute("font-size", "13");
+                nameText.setAttribute("font-family", "Arial, sans-serif");
+                nameText.setAttribute("text-anchor", "middle");
+                nameText.setAttribute("dominant-baseline", "middle");
+                
+                const nameX = settings.width / 2;
+                const nameY = settings.height / 2;
+                nameText.setAttribute("transform", getSVGTextTransform(textRotation, nameX, nameY));
+                nameText.textContent = truncateText(node.data.name, 20);
+                nodeGroup.appendChild(nameText);
+                
+                // Additional info với inline styles
+                let yPos = settings.height / 2 + 20;
+                const lineHeight = 14;
+
+                if (displayOptions.showTitle && node.data.title) {
+                    const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    titleText.setAttribute("fill", "#7f8c8d");
+                    titleText.setAttribute("font-size", "11");
+                    titleText.setAttribute("font-family", "Arial, sans-serif");
+                    titleText.setAttribute("text-anchor", "middle");
+                    
+                    const titleX = settings.width / 2;
+                    titleText.setAttribute("transform", getSVGTextTransform(textRotation, titleX, yPos));
+                    titleText.textContent = truncateText(node.data.title, 16);
+                    nodeGroup.appendChild(titleText);
+                    yPos += lineHeight;
+                }
+
+                if (displayOptions.showBirthday && node.data.birthday) {
+                    const birthdayText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    birthdayText.setAttribute("fill", "#7f8c8d");
+                    birthdayText.setAttribute("font-size", "11");
+                    birthdayText.setAttribute("font-family", "Arial, sans-serif");
+                    birthdayText.setAttribute("text-anchor", "middle");
+                    
+                    const birthdayX = settings.width / 2;
+                    birthdayText.setAttribute("transform", getSVGTextTransform(textRotation, birthdayX, yPos));
+                    birthdayText.textContent = formatDate(node.data.birthday);
+                    nodeGroup.appendChild(birthdayText);
+                    yPos += lineHeight;
+                }
+
+                if (displayOptions.showDeathDate && node.data.date_of_death) {
+                    const deathText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    deathText.setAttribute("fill", "#7f8c8d");
+                    deathText.setAttribute("font-size", "11");
+                    deathText.setAttribute("font-family", "Arial, sans-serif");
+                    deathText.setAttribute("text-anchor", "middle");
+                    
+                    const deathX = settings.width / 2;
+                    deathText.setAttribute("transform", getSVGTextTransform(textRotation, deathX, yPos));
+                    deathText.textContent = "✝ " + formatDate(node.data.date_of_death);
+                    nodeGroup.appendChild(deathText);
+                    yPos += lineHeight;
+                }
+                
+                newG.appendChild(nodeGroup);
+            });
+            
+            return newSVG;
+        }
+
+        // Tạo SVG chuẩn cho CorelDRAW với cấu trúc tối ưu
+        function createCorelDrawCompatibleSVG() {
+            if (!root) return null;
+            
+            // Tính toán kích thước toàn bộ cây
+            const nodes = root.descendants();
+            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+            
+            nodes.forEach(node => {
+                const settings = getLevelSettings(node.depth);
+                minX = Math.min(minX, node.x - settings.width/2);
+                maxX = Math.max(maxX, node.x + settings.width/2);
+                minY = Math.min(minY, node.y - settings.height/2);
+                maxY = Math.max(maxY, node.y + settings.height/2);
+            });
+            
+            const svgWidth = maxX - minX + 100; // thêm padding
+            const svgHeight = maxY - minY + 100;
+            const offsetX = -minX + 50;
+            const offsetY = -minY + 50;
+            
+            // Tạo SVG với namespaces đầy đủ cho CorelDRAW
+            const newSVG = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            newSVG.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+            newSVG.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+            newSVG.setAttribute("width", Math.ceil(svgWidth) + "px");
+            newSVG.setAttribute("height", Math.ceil(svgHeight) + "px");
+            newSVG.setAttribute("viewBox", `0 0 ${Math.ceil(svgWidth)} ${Math.ceil(svgHeight)}`);
+            newSVG.setAttribute("version", "1.1");
+            
+            // Style definitions trong <defs> cho CorelDRAW
+            const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+            style.setAttribute("type", "text/css");
+            style.textContent = `
+                .family-text { font-family: Arial, sans-serif; font-weight: bold; font-size: 13px; fill: #2c3e50; text-anchor: middle; }
+                .birth-text { font-family: Arial, sans-serif; font-size: 11px; fill: #7f8c8d; text-anchor: middle; }
+                .death-text { font-family: Arial, sans-serif; font-size: 11px; fill: #7f8c8d; text-anchor: middle; }
+                .title-text { font-family: Arial, sans-serif; font-size: 10px; fill: #34495e; text-anchor: middle; }
+                .link-path { fill: none; stroke: #7f8c8d; stroke-width: 2; }
+                .marriage-line { stroke: #e74c3c; stroke-width: 3; stroke-dasharray: 8,4; }
+            `;
+            defs.appendChild(style);
+            newSVG.appendChild(defs);
+            
+            // Group chính cho tất cả elements
+            const mainGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            mainGroup.setAttribute("id", "family-tree");
+            
+            // Group cho biological links (nền)
+            const linksGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            linksGroup.setAttribute("id", "biological-links");
+            
+            // Group cho marriage links 
+            const marriageGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            marriageGroup.setAttribute("id", "marriage-links");
+            
+            // Group cho nodes (trên cùng)
+            const nodesGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            nodesGroup.setAttribute("id", "nodes");
+            
+            // Rebuild ARRAY_H_LINE để có paths chính xác
+            const originalArrayHLine = [...ARRAY_H_LINE];
+            ARRAY_H_LINE = [];
+            customTreeLayout(root);
+            
+            // Get biological links
+            const biologicalLinks = [];
+            nodes.forEach(node => {
+                if (node.parent) {
+                    biologicalLinks.push({source: node.parent, target: node});
+                }
+            });
+            
+            // Get custom paths for biological links
+            const sortedLinks = biologicalLinks.sort((a, b) => a.target.depth - b.target.depth);
+            const linkPaths = new Map();
+            
+            sortedLinks.forEach((link, index) => {
+                const pathD = customLinkPath(link);
+                const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                linkPaths.set(linkKey, pathD);
+            });
+            
+            // Thêm biological links vào group
+            biologicalLinks.forEach(link => {
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                const pathD = linkPaths.get(linkKey);
+                
+                if (pathD) {
+                    // Transform path coordinates
+                    const transformedPath = pathD.replace(/([ML])\s*([0-9.-]+)[,\s]+([0-9.-]+)/g, 
+                        (match, command, x, y) => {
+                            const newX = parseFloat(x) + offsetX;
+                            const newY = parseFloat(y) + offsetY;
+                            return `${command}${newX},${newY}`;
+                        });
+                    
+                    path.setAttribute("d", transformedPath);
+                    path.setAttribute("class", "link-path");
+                    path.setAttribute("id", `link-${link.source.data.id}-${link.target.data.id}`);
+                    linksGroup.appendChild(path);
+                }
+            });
+            
+            // Thêm marriage links
+            const marriageLinks = detectMarriageLinks(nodes);
+            marriageLinks.forEach(marriageLink => {
+                const x1 = marriageLink.person.x + offsetX;
+                const y1 = marriageLink.person.y + offsetY;
+                const x2 = marriageLink.spouse.x + offsetX;
+                const y2 = marriageLink.spouse.y + offsetY;
+                
+                const marriageLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                marriageLine.setAttribute("x1", x1);
+                marriageLine.setAttribute("y1", y1);
+                marriageLine.setAttribute("x2", x2);
+                marriageLine.setAttribute("y2", y2);
+                marriageLine.setAttribute("class", "marriage-line");
+                marriageLine.setAttribute("id", `marriage-${marriageLink.person.data.id}-${marriageLink.spouse.data.id}`);
+                marriageGroup.appendChild(marriageLine);
+            });
+            
+            // Thêm nodes
+            nodes.forEach(node => {
+                const settings = getLevelSettings(node.depth);
+                const displayOptions = getDisplayOptions(node.depth);
+                
+                // Group cho mỗi node
+                const nodeGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                nodeGroup.setAttribute("id", `node-${node.data.id}`);
+                nodeGroup.setAttribute("transform", `translate(${node.x + offsetX - settings.width/2}, ${node.y + offsetY - settings.height/2})`);
+                
+                // Rectangle
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("width", settings.width);
+                rect.setAttribute("height", settings.height);
+                rect.setAttribute("rx", "5");
+                rect.setAttribute("ry", "5");
+                rect.setAttribute("fill", "#ffffff");
+                rect.setAttribute("stroke-width", "3");
+                
+                // Gender-based colors
+                let strokeColor = "#95a5a6"; // unknown
+                if (node.data.gender === 1) strokeColor = "#3498db"; // male
+                else if (node.data.gender === 2) strokeColor = "#e91e63"; // female
+                
+                rect.setAttribute("stroke", strokeColor);
+                
+                // Deceased style
+                if (node.data.date_of_death) {
+                    rect.setAttribute("stroke", "#7f8c8d");
+                    rect.setAttribute("stroke-dasharray", "8,4");
+                }
+                
+                nodeGroup.appendChild(rect);
+                
+                // Text content
+                const textRotation = getTextRotation(node.depth);
+                let yPos = 20; // Start position
+                const lineHeight = 16;
+                
+                // Name text
+                const nameText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                nameText.setAttribute("class", "family-text");
+                nameText.setAttribute("dominant-baseline", "middle");
+                
+                const nameX = settings.width / 2;
+                if (textRotation === 'vertical-top') {
+                    nameText.setAttribute("transform", `translate(${nameX}, ${yPos}) rotate(-90)`);
+                    nameText.setAttribute("text-anchor", "end");
+                } else if (textRotation === 'vertical-bottom') {
+                    nameText.setAttribute("transform", `translate(${nameX}, ${yPos}) rotate(90)`);
+                    nameText.setAttribute("text-anchor", "start");
+                } else {
+                    nameText.setAttribute("transform", `translate(${nameX}, ${yPos})`);
+                }
+                
+                nameText.textContent = node.data.name || "Unknown";
+                nodeGroup.appendChild(nameText);
+                yPos += lineHeight;
+                
+                // Additional text fields...
+                if (displayOptions.showTitle && node.data.title) {
+                    const titleText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    titleText.setAttribute("class", "title-text");
+                    titleText.setAttribute("dominant-baseline", "middle");
+                    
+                    const titleX = settings.width / 2;
+                    if (textRotation === 'vertical-top') {
+                        titleText.setAttribute("transform", `translate(${titleX}, ${yPos}) rotate(-90)`);
+                        titleText.setAttribute("text-anchor", "end");
+                    } else if (textRotation === 'vertical-bottom') {
+                        titleText.setAttribute("transform", `translate(${titleX}, ${yPos}) rotate(90)`);
+                        titleText.setAttribute("text-anchor", "start");
+                    } else {
+                        titleText.setAttribute("transform", `translate(${titleX}, ${yPos})`);
+                    }
+                    
+                    titleText.textContent = node.data.title;
+                    nodeGroup.appendChild(titleText);
+                    yPos += lineHeight;
+                }
+                
+                if (displayOptions.showBirthday && node.data.birthday) {
+                    const birthdayText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    birthdayText.setAttribute("class", "birth-text");
+                    birthdayText.setAttribute("dominant-baseline", "middle");
+                    
+                    const birthdayX = settings.width / 2;
+                    if (textRotation === 'vertical-top') {
+                        birthdayText.setAttribute("transform", `translate(${birthdayX}, ${yPos}) rotate(-90)`);
+                        birthdayText.setAttribute("text-anchor", "end");
+                    } else if (textRotation === 'vertical-bottom') {
+                        birthdayText.setAttribute("transform", `translate(${birthdayX}, ${yPos}) rotate(90)`);
+                        birthdayText.setAttribute("text-anchor", "start");
+                    } else {
+                        birthdayText.setAttribute("transform", `translate(${birthdayX}, ${yPos})`);
+                    }
+                    
+                    birthdayText.textContent = formatDate(node.data.birthday);
+                    nodeGroup.appendChild(birthdayText);
+                    yPos += lineHeight;
+                }
+                
+                if (displayOptions.showDeathDate && node.data.date_of_death) {
+                    const deathText = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    deathText.setAttribute("class", "death-text");
+                    deathText.setAttribute("dominant-baseline", "middle");
+                    
+                    const deathX = settings.width / 2;
+                    if (textRotation === 'vertical-top') {
+                        deathText.setAttribute("transform", `translate(${deathX}, ${yPos}) rotate(-90)`);
+                        deathText.setAttribute("text-anchor", "end");
+                    } else if (textRotation === 'vertical-bottom') {
+                        deathText.setAttribute("transform", `translate(${deathX}, ${yPos}) rotate(90)`);
+                        deathText.setAttribute("text-anchor", "start");
+                    } else {
+                        deathText.setAttribute("transform", `translate(${deathX}, ${yPos})`);
+                    }
+                    
+                    deathText.textContent = "✝ " + formatDate(node.data.date_of_death);
+                    nodeGroup.appendChild(deathText);
+                }
+                
+                nodesGroup.appendChild(nodeGroup);
+            });
+            
+            // Thêm các groups theo thứ tự đúng (links trước, nodes sau)
+            mainGroup.appendChild(linksGroup);
+            mainGroup.appendChild(marriageGroup);
+            mainGroup.appendChild(nodesGroup);
+            newSVG.appendChild(mainGroup);
+            
+            // Restore original ARRAY_H_LINE
+            ARRAY_H_LINE = originalArrayHLine;
+            
+            return newSVG.outerHTML;
+        }
+
+        // Tạo XML theo format mxGraph cho draw.io
+        function createDrawIOXML() {
+            try {
+                if (!root) return null;
+                
+                console.log("🔧 Creating Draw.io XML...");
+                
+                // Tính toán kích thước toàn bộ cây
+                const nodes = root.descendants();
+                console.log(`📊 Processing ${nodes.length} nodes`);
+                
+                // Debug: Log all nodes
+                nodes.forEach((node, index) => {
+                    console.log(`📋 Node ${index + 1}: ${node.data.name} (ID: ${node.data.id}, Level: ${node.depth}, Has children: ${node.children ? node.children.length : 0})`);
+                });
+                
+                let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+                
+                nodes.forEach(node => {
+                    const settings = getLevelSettings(node.depth);
+                    minX = Math.min(minX, node.x - settings.width/2);
+                    maxX = Math.max(maxX, node.x + settings.width/2);
+                    minY = Math.min(minY, node.y - settings.height/2);
+                    maxY = Math.max(maxY, node.y + settings.height/2);
+                });
+                
+                const margin = 50;
+                const svgWidth = maxX - minX + 2 * margin;
+                const svgHeight = maxY - minY + 2 * margin;
+                const offsetX = -minX + margin;
+                const offsetY = -minY + margin;
+                
+                console.log(`📐 Canvas size: ${svgWidth} x ${svgHeight}`);
+                
+                // Filter biological links
+                const biologicalLinks = root.links().filter(link => {
+                    return !link.target.data.married_with || link.target.data.married_with === null;
+                });
+                
+                console.log(`🔗 Found ${biologicalLinks.length} biological links out of ${root.links().length} total links`);
+                
+                // Create marriage links
+                const marriages = [];
+                const processed = new Set();
+
+                familyData.forEach(person => {
+                    if (person.married_with && !processed.has(`${person.id}-${person.married_with}`)) {
+                        const spouse = familyData.find(p => p.id === person.married_with);
+                        if (spouse) {
+                            marriages.push({person, spouse});
+                            processed.add(`${person.id}-${person.married_with}`);
+                            processed.add(`${person.married_with}-${person.id}`);
+                        }
+                    }
+                });
+                
+                console.log(`💑 Found ${marriages.length} marriage links`);
+                
+                // Filter marriage links that exist in our node tree
+                const marriageLinks = [];
+                marriages.forEach(marriage => {
+                    const node1 = nodes.find(d => d.data.id === marriage.person.id);
+                    const node2 = nodes.find(d => d.data.id === marriage.spouse.id);
+                    if (node1 && node2) {
+                        marriageLinks.push({source: node1, target: node2, person: marriage.person, spouse: marriage.spouse});
+                    }
+                });
+                
+                console.log(`💏 Valid marriage links in tree: ${marriageLinks.length}`);
+                
+                // Rebuild ARRAY_H_LINE to get accurate paths
+                const originalArrayHLine = [...ARRAY_H_LINE];
+                ARRAY_H_LINE = [];
+                customTreeLayout(root); // Ensure layout is correct
+                
+                // Build ARRAY_H_LINE and get custom paths
+                const sortedLinks = biologicalLinks.sort((a, b) => a.target.depth - b.target.depth);
+                const linkPaths = new Map();
+                
+                console.log("🔧 Building custom link paths...");
+                sortedLinks.forEach((link, index) => {
+                    const pathD = customLinkPath(link);
+                    const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                    linkPaths.set(linkKey, pathD);
+                    console.log(`📏 Link ${index + 1}: ${link.source.data.name} -> ${link.target.data.name}`);
+                });
+                
+                // Restore original ARRAY_H_LINE
+                ARRAY_H_LINE = originalArrayHLine;
+                
+                // Tạo mxGraphModel XML
+                let cellId = 2; // Bắt đầu từ 2 vì đã có id="0" và id="1"
+                let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="Electron" modified="2025-08-19T00:00:00.000Z" agent="5.0" version="25.0.0" etag="mxGraphModel">
+  <diagram name="Family Tree" id="family-tree">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="${Math.ceil(svgWidth)}" pageHeight="${Math.ceil(svgHeight)}" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>`;
+                
+                // Thêm marriage links NGAY ĐẦU để send to back (theo cách draw.io tổ chức)
+                console.log(`💏 Adding marriage links first for proper z-order...`);
+                
+                // Tạm thời assign cell IDs cho nodes để có thể reference trong marriage links
+                nodes.forEach(node => {
+                    node._tempCellId = cellId;
+                    cellId++;
+                });
+                
+                marriageLinks.forEach((marriageLink, index) => {
+                    try {
+                        const sourceId = marriageLink.source._tempCellId;
+                        const targetId = marriageLink.target._tempCellId;
+                        
+                        if (!sourceId || !targetId) {
+                            console.warn(`⚠️ Missing temp cell ID for marriage link ${index}: source=${sourceId}, target=${targetId}`);
+                            return;
+                        }
+                        
+                        // Marriage links go first = send to back in draw.io
+                        xml += `
+        <mxCell id="${cellId}" value="" style="endArrow=none;html=1;strokeWidth=3;strokeColor=#e74c3c;strokeDasharray=8,4;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="${sourceId}" target="${targetId}">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>`;
+                        
+                        cellId++;
+                        console.log(`✓ Marriage link ${index + 1}/${marriageLinks.length}: ${marriageLink.person.name} ♥ ${marriageLink.spouse.name}`);
+                    } catch (marriageError) {
+                        console.error(`❌ Error processing marriage link ${index}:`, marriageError, marriageLink);
+                    }
+                });
+                
+                console.log(`📝 Starting cell ID from: ${cellId}`);
+                nodes.forEach((node, index) => {
+                    try {
+                        const settings = getLevelSettings(node.depth);
+                        const x = node.x - settings.width/2 + offsetX;
+                        const y = node.y - settings.height/2 + offsetY;
+                        
+                        // Xác định màu stroke
+                        let strokeColor = "#95a5a6"; // unknown
+                        if (node.data.gender === 1) strokeColor = "#3498db"; // male
+                        else if (node.data.gender === 2) strokeColor = "#e91e63"; // female
+                        
+                        // Deceased style
+                        let strokeStyle = "";
+                        if (node.data.date_of_death) {
+                            strokeColor = "#7f8c8d";
+                            strokeStyle = ";dashed=1";
+                        }
+                        
+                        // Tạo text content
+                        let text = node.data.name || "Unknown";
+                        const displayOptions = getDisplayOptions(node.depth);
+                        
+                        if (displayOptions.showTitle && node.data.title) {
+                            text += "\\n" + node.data.title;
+                        }
+                        
+                        if (displayOptions.showBirthday && node.data.birthday) {
+                            text += "\\n" + formatDate(node.data.birthday);
+                        }
+                        
+                        if (displayOptions.showDeathDate && node.data.date_of_death) {
+                            text += "\\n✝ " + formatDate(node.data.date_of_death);
+                        }
+                        
+                        // Get text rotation for this level
+                        const textRotation = getTextRotation(node.depth);
+                        let safeText = (text || "").toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                        
+                        // Add horizontal=0 for vertical text
+                        let horizontalStyle = "";
+                        if (textRotation === 'vertical-top' || textRotation === 'vertical-bottom') {
+                            horizontalStyle = ";horizontal=0";
+                        }
+                        
+                        // Sử dụng temp cell ID đã được assign
+                        const currentCellId = node._tempCellId;
+                        
+                        xml += `
+        <mxCell id="${currentCellId}" value="${safeText}" style="rounded=1;whiteSpace=wrap;html=1;strokeWidth=3;fillColor=#FFFFFF;strokeColor=${strokeColor};fontFamily=Arial;fontSize=13;fontStyle=1;align=center;verticalAlign=middle${strokeStyle}${horizontalStyle}" vertex="1" parent="1">
+          <mxGeometry x="${x}" y="${y}" width="${settings.width}" height="${settings.height}" as="geometry"/>
+        </mxCell>`;
+                        
+                        // Lưu cell ID cho node (sử dụng temp ID)
+                        node._cellId = currentCellId;
+                        
+                        console.log(`✓ Node ${index + 1}/${nodes.length}: ${node.data.name} (ID: ${node._cellId})`);
+                    } catch (nodeError) {
+                        console.error(`❌ Error processing node ${index}:`, nodeError, node);
+                    }
+                });
+                
+                // Thêm edges (links) với custom waypoints
+                biologicalLinks.forEach((link, index) => {
+                    try {
+                        const sourceId = link.source._cellId;
+                        const targetId = link.target._cellId;
+                        
+                        if (!sourceId || !targetId) {
+                            console.warn(`⚠️ Missing cell ID for link ${index}: source=${sourceId}, target=${targetId}`);
+                            return;
+                        }
+                        
+                        // Get custom path data
+                        const linkKey = `${link.source.data.id}-to-${link.target.data.id}`;
+                        const customPath = linkPaths.get(linkKey);
+                        
+                        // Parse custom path to get waypoints
+                        let waypointXML = "";
+                        if (customPath) {
+                            // Extract coordinates from path
+                            const pathCommands = customPath.split(/[ML]/);
+                            const coordinates = [];
+                            
+                            pathCommands.forEach(cmd => {
+                                const coords = cmd.trim().split(/[,\s]+/);
+                                if (coords.length >= 2) {
+                                    const x = parseFloat(coords[0]);
+                                    const y = parseFloat(coords[1]);
+                                    if (!isNaN(x) && !isNaN(y)) {
+                                        coordinates.push({x: x + offsetX, y: y + offsetY});
+                                    }
+                                }
+                            });
+                            
+                            // Adjust starting Y coordinate from bottom of parent to middle Y of parent
+                            if (coordinates.length > 0) {
+                                const parentSettings = getLevelSettings(link.source.depth);
+                                const parentCenterY = link.source.y + offsetY; // Middle Y của parent
+                                
+                                // Modify first coordinate to use parent center Y instead of bottom Y
+                                coordinates[0].y = parentCenterY;
+                                
+                                console.log(`🔧 Adjusted start Y for ${link.source.data.name} -> ${link.target.data.name}: Bottom → Center (${Math.round(parentCenterY)})`);
+                            }
+                            
+                            // Create waypoints if we have intermediate points
+                            if (coordinates.length > 2) {
+                                const waypoints = coordinates.slice(1, -1); // Exclude start and end
+                                if (waypoints.length > 0) {
+                                    const waypointStrings = waypoints.map(wp => `<mxPoint x="${wp.x}" y="${wp.y}" as="sourcePoint"/>`);
+                                    waypointXML = `
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                ${waypoints.map(wp => `<mxPoint x="${wp.x}" y="${wp.y}"/>`).join('\n                ')}
+              </Array>
+            </mxGeometry>`;
+                                }
+                            }
+                        }
+                        
+                        // Create edge with custom waypoints or default geometry
+                        const geometryXML = waypointXML || '<mxGeometry relative="1" as="geometry"/>';
+                        
+                        xml += `
+        <mxCell id="${cellId}" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#7f8c8d;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;endArrow=none;" edge="1" parent="1" source="${sourceId}" target="${targetId}">
+          ${geometryXML}
+        </mxCell>`;
+                        
+                        cellId++;
+                        console.log(`✓ Link ${index + 1}/${biologicalLinks.length}: ${sourceId} -> ${targetId}`);
+                    } catch (linkError) {
+                        console.error(`❌ Error processing link ${index}:`, linkError, link);
+                    }
+                });
+                
+                xml += `
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>`;
+                
+                console.log("✅ Draw.io XML created successfully");
+                return xml;
+            } catch (error) {
+                console.error("❌ Error in createDrawIOXML:", error);
+                return null;
+            }
+        }
+
+        // Initialize event listeners when DOM is ready
+        function initializeEventListeners() {
+            // Level selector event listener
+            const levelSelector = document.getElementById('levelSelector');
+            if (levelSelector) {
+                levelSelector.addEventListener('change', function(e) {
+                    const level = parseInt(e.target.value);
+                    selectLevel(level);
+                });
+            }
+            
+            // Level controls event listeners - respond immediately to changes with auto-save
+            const levelWidth = document.getElementById('levelWidth');
+            if (levelWidth) {
+                levelWidth.addEventListener('input', function() {
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+                levelWidth.addEventListener('change', function() {
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+            }
+            
+            const levelHeight = document.getElementById('levelHeight');
+            if (levelHeight) {
+                levelHeight.addEventListener('input', function() {
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+                levelHeight.addEventListener('change', function() {
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+            }
+            
+            const levelSpacing = document.getElementById('levelNodeSpacing');
+            if (levelSpacing) {
+                levelSpacing.addEventListener('input', function() {
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+                levelSpacing.addEventListener('change', function() {
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+            }
+            
+            const resetSpaceLevelBtn = document.getElementById('resetSpaceLevel');
+            if (resetSpaceLevelBtn) {
+                resetSpaceLevelBtn.addEventListener('click', function() {
+                    resetLevelSpacing();
+                    saveLevelSettings(); // Auto-save after reset
+                });
+            }
+            
+            // Level text rotation event listener with auto-save and dimension switching
+            const levelTextRotation = document.getElementById('levelTextRotation');
+            if (levelTextRotation) {
+                levelTextRotation.addEventListener('change', function() {
+                    if (selectedLevel === -1) return; // No level selected
+                    
+                    const newRotation = this.value;
+                    const currentRotation = this.dataset.previousValue || '';
+                    
+                    console.log(`🔄 Level ${selectedLevel} text rotation change: ${currentRotation} → ${newRotation}`);
+                    
+                    // Save current dimensions before switching (if there was a previous rotation)
+                    if (currentRotation && currentRotation !== newRotation) {
+                        const currentWidth = parseInt(document.getElementById('levelWidth').value) || nodeWidth;
+                        const currentHeight = parseInt(document.getElementById('levelHeight').value) || nodeHeight;
+                        
+                        // Save current dimensions to the previous orientation
+                        if (!levelSettings[selectedLevel].orientationDimensions) {
+                            levelSettings[selectedLevel].orientationDimensions = {};
+                        }
+                        
+                        const prevOrientationKey = (currentRotation === 'vertical-top' || currentRotation === 'vertical-bottom') ? 'vertical' : currentRotation;
+                        levelSettings[selectedLevel].orientationDimensions[prevOrientationKey] = {
+                            width: currentWidth,
+                            height: currentHeight
+                        };
+                        
+                        console.log(`💾 Saved level ${selectedLevel} dimensions for ${currentRotation} (key: ${prevOrientationKey}):`, { width: currentWidth, height: currentHeight });
+                    }
+                    
+                    // Load dimensions for new orientation and update UI immediately
+                    const orientationDimensions = loadLevelDimensionsForOrientation(selectedLevel, newRotation);
+                    if (orientationDimensions) {
+                        document.getElementById('levelWidth').value = orientationDimensions.width;
+                        document.getElementById('levelHeight').value = orientationDimensions.height;
+                        console.log(`✅ Updated level ${selectedLevel} UI inputs for ${newRotation}:`, orientationDimensions);
+                    }
+                    
+                    // Store new rotation as previous value for next change
+                    this.dataset.previousValue = newRotation;
+                    
+                    // Update the display and save settings
+                    updateLevelDisplay();
+                    saveLevelSettings(); // Auto-save
+                });
+            }
+            
+            // Level display options event listeners with auto-save
+            const displayOptions = ['levelShowTitle', 'levelShowBirthday', 'levelShowDeathDate', 'levelShowImage'];
+            displayOptions.forEach(optionId => {
+                const element = document.getElementById(optionId);
+                if (element) {
+                    element.addEventListener('change', function() {
+                        updateLevelDisplay();
+                        saveLevelSettings(); // Auto-save
+                    });
+                }
+            });
+        }
+
+        function loadDataJSON() {
+            console.log("🔄 Đang load data.json...");
+            
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', './data.json', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            familyData = data;
+                            console.log(`✅ Loaded ${data.length} family members from data.json`);
+                            
+                            // Debug thông tin root
+                            const rootNode = data.find(p => p.parent_id === 0);
+                            if (rootNode) {
+                                console.log(`📍 Root node: ${rootNode.name} (ID: ${rootNode.id})`);
+                                
+                                // Tìm tất cả con của root
+                                const rootChildren = data.filter(p => p.parent_id === rootNode.id);
+                                console.log(`👨‍👩‍👧‍👦 Root has ${rootChildren.length} direct children:`);
+                                rootChildren.forEach(child => {
+                                    console.log(`   - ${child.name} (ID: ${child.id}, Gender: ${child.gender})`);
+                                });
+                            }
+                            
+                            processData();
+                            updateDisplay();
+                            updateStats();
+                            centerTree();
+                            
+                            // Hiển thị thông báo thành công
+                            setTimeout(() => {
+                                console.log(`✅ Đã load thành công ${data.length} thành viên từ data.json!\n🌳 Có ${rootNode ? data.filter(p => p.parent_id === rootNode.id).length : 0} con của gốc cây.`);
+                            }, 500);
+                            
+                        } catch (error) {
+                            console.error("❌ JSON parsing error:", error);
+                            alert("❌ Lỗi parse JSON: " + error.message + "\n🔄 Đang load dữ liệu mẫu...");
+                            loadSampleData(); // Fallback to sample data
+                        }
+                    } else {
+                        console.error("❌ HTTP Error:", xhr.status);
+                        alert("🔄 Không thể load data.json, đang load dữ liệu mẫu...");
+                        loadSampleData(); // Fallback to sample data
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        // Config management utility functions
+        function exportConfig() {
+            const globalConfig = JSON.parse(localStorage.getItem(CONFIG_KEYS.GLOBAL) || '{}');
+            const levelConfig = JSON.parse(localStorage.getItem(CONFIG_KEYS.LEVELS) || '{}');
+            
+            const exportData = {
+                version: '1.0',
+                timestamp: new Date().toISOString(),
+                global: globalConfig,
+                levels: levelConfig
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], {type: "application/json;charset=utf-8"});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `family-tree-config-${new Date().toISOString().slice(0,10)}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            console.log("✅ Config exported:", exportData);
+            alert("📤 Đã xuất cấu hình thành công!");
+        }
+
+        // Import configuration
+        function importConfig() {
+            const fileInput = document.getElementById('configFileInput');
+            fileInput.onchange = function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            const config = JSON.parse(e.target.result);
+                            
+                            // Validate config structure
+                            if (!config || typeof config !== 'object') {
+                                throw new Error('Invalid config format');
+                            }
+                            
+                            // Import global config if exists
+                            if (config.global) {
+                                localStorage.setItem(CONFIG_KEYS.GLOBAL, JSON.stringify(config.global));
+                                loadGlobalConfig(); // Apply global config
+                            }
+                            
+                            // Import level configs if exists
+                            if (config.levels) {
+                                localStorage.setItem(CONFIG_KEYS.LEVELS, JSON.stringify(config.levels));
+                                loadLevelSettings(); // Apply level settings
+                            }
+                            
+                            // Refresh visualization
+                            updateVisualization();
+                            alert('Config imported successfully!');
+                            
+                        } catch (error) {
+                            alert('Error importing config: ' + error.message);
+                        }
+                    };
+                    reader.readAsText(file);
+                }
+                // Reset input
+                fileInput.value = '';
+            };
+            fileInput.click();
+        }
+
+        function clearAllConfig() {
+            if (confirm("🗑️ Bạn có chắc muốn xóa toàn bộ cấu hình đã lưu?")) {
+                try {
+                    localStorage.removeItem(CONFIG_KEYS.GLOBAL);
+                    localStorage.removeItem(CONFIG_KEYS.LEVELS);
+                    
+                    // Reset to defaults
+                    levelSettings = {};
+                    selectedLevel = -1;
+                    
+                    // Reset UI to defaults
+                    location.reload(); // Simple way to reset everything
+                    
+                    console.log("✅ All config cleared");
+                } catch (error) {
+                    console.error("❌ Failed to clear config:", error);
+                    alert("❌ Lỗi khi xóa cấu hình!");
+                }
+            }
+        }
+
+        function importConfig(configData) {
+            try {
+                if (configData.global) {
+                    localStorage.setItem(CONFIG_KEYS.GLOBAL, JSON.stringify(configData.global));
+                }
+                if (configData.levels) {
+                    localStorage.setItem(CONFIG_KEYS.LEVELS, JSON.stringify(configData.levels));
+                }
+                
+                console.log("✅ Config imported successfully");
+                alert("📥 Đã nhập cấu hình thành công! Trang sẽ tự động load lại.");
+                location.reload();
+            } catch (error) {
+                console.error("❌ Failed to import config:", error);
+                alert("❌ Lỗi khi nhập cấu hình!");
+            }
+        }
+
+    </script>
+</body>
+</html>

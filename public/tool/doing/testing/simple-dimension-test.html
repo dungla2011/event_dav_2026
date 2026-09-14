@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔧 Simple Dimension Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+        }
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #ccc;
+        }
+        .test-result.pass {
+            background: #d4edda;
+            border-color: #27ae60;
+            color: #155724;
+        }
+        .test-result.fail {
+            background: #f8d7da;
+            border-color: #e74c3c;
+            color: #721c24;
+        }
+        .family-tree-frame {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .test-log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Simple Dimension Test</h1>
+        <p>Direct testing of dimension changes without iframe complications</p>
+        
+        <div>
+            <button class="test-btn" onclick="runDirectDimensionTest()">🚀 Run Direct Dimension Test</button>
+            <button class="test-btn" onclick="runEventBasedTest()">📡 Run Event-Based Test</button>
+            <button class="test-btn" onclick="clearLog()">🧹 Clear Log</button>
+        </div>
+
+        <iframe id="familyTreeFrame" class="family-tree-frame" src="./doing.html"></iframe>
+        
+        <div id="testResults"></div>
+        <div id="testLog" class="test-log"></div>
+    </div>
+
+    <script>
+        let testResults = [];
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logDiv = document.getElementById('testLog');
+            const prefix = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            logDiv.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`${prefix} ${message}`);
+        }
+        
+        function addResult(testName, passed, message) {
+            const resultsDiv = document.getElementById('testResults');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `<strong>${testName}</strong>: ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            
+            testResults.push({ testName, passed, message });
+        }
+        
+        function clearLog() {
+            document.getElementById('testLog').textContent = '';
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+        }
+        
+        async function waitFor(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        async function runDirectDimensionTest() {
+            log('🔧 Starting Direct Dimension Test...', 'info');
+            
+            const iframe = document.getElementById('familyTreeFrame');
+            if (!iframe.contentWindow || !iframe.contentDocument) {
+                log('❌ Iframe not loaded properly', 'error');
+                return;
+            }
+            
+            const iframeDoc = iframe.contentDocument;
+            const iframeWindow = iframe.contentWindow;
+            
+            try {
+                await waitFor(1000); // Ensure iframe is fully loaded
+                
+                // Test 1: Direct DOM Manipulation
+                log('📝 Test 1: Direct DOM Manipulation', 'info');
+                
+                const widthSlider = iframeDoc.getElementById('nodeWidth');
+                const heightSlider = iframeDoc.getElementById('nodeHeight');
+                const allRects = iframeDoc.querySelectorAll('.person-rect');
+                
+                if (!widthSlider || !heightSlider || allRects.length === 0) {
+                    log(`❌ Missing elements: width(${!!widthSlider}) height(${!!heightSlider}) rects(${allRects.length})`, 'error');
+                    return;
+                }
+                
+                log(`Found ${allRects.length} rectangles to test`, 'info');
+                
+                const originalWidth = parseInt(widthSlider.value) || 180;
+                const originalHeight = parseInt(heightSlider.value) || 100;
+                const newWidth = originalWidth + 50;
+                const newHeight = originalHeight + 30;
+                
+                log(`Original dimensions: ${originalWidth}x${originalHeight}`, 'info');
+                log(`Target dimensions: ${newWidth}x${newHeight}`, 'info');
+                
+                // Test width change by direct setAttribute
+                const firstRect = allRects[0];
+                const beforeWidth = parseFloat(firstRect.getAttribute('width'));
+                
+                // Change all rectangles directly
+                allRects.forEach((rect, index) => {
+                    rect.setAttribute('width', newWidth);
+                    if (index < 3) {
+                        log(`Rect ${index}: ${rect.getAttribute('width')}`, 'info');
+                    }
+                });
+                
+                await waitFor(100);
+                
+                const afterWidth = parseFloat(firstRect.getAttribute('width'));
+                const widthChanged = Math.abs(afterWidth - newWidth) < 5;
+                
+                log(`Width test: ${beforeWidth} → ${afterWidth} (expected: ${newWidth})`, widthChanged ? 'success' : 'error');
+                addResult('Direct Width Change', widthChanged, `${beforeWidth} → ${afterWidth} (expected: ${newWidth})`);
+                
+                // Test height change
+                const beforeHeight = parseFloat(firstRect.getAttribute('height'));
+                
+                allRects.forEach(rect => {
+                    rect.setAttribute('height', newHeight);
+                });
+                
+                await waitFor(100);
+                
+                const afterHeight = parseFloat(firstRect.getAttribute('height'));
+                const heightChanged = Math.abs(afterHeight - newHeight) < 5;
+                
+                log(`Height test: ${beforeHeight} → ${afterHeight} (expected: ${newHeight})`, heightChanged ? 'success' : 'error');
+                addResult('Direct Height Change', heightChanged, `${beforeHeight} → ${afterHeight} (expected: ${newHeight})`);
+                
+                // Restore original dimensions
+                allRects.forEach(rect => {
+                    rect.setAttribute('width', originalWidth);
+                    rect.setAttribute('height', originalHeight);
+                });
+                
+                log('✅ Direct dimension test completed', 'success');
+                
+            } catch (error) {
+                log(`❌ Direct test error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runEventBasedTest() {
+            log('📡 Starting Event-Based Test...', 'info');
+            
+            const iframe = document.getElementById('familyTreeFrame');
+            if (!iframe.contentWindow || !iframe.contentDocument) {
+                log('❌ Iframe not loaded properly', 'error');
+                return;
+            }
+            
+            const iframeDoc = iframe.contentDocument;
+            const iframeWindow = iframe.contentWindow;
+            
+            try {
+                await waitFor(1000);
+                
+                const widthSlider = iframeDoc.getElementById('nodeWidth');
+                const heightSlider = iframeDoc.getElementById('nodeHeight');
+                const firstRect = iframeDoc.querySelector('.person-rect');
+                
+                if (!widthSlider || !heightSlider || !firstRect) {
+                    log('❌ Required elements not found for event test', 'error');
+                    return;
+                }
+                
+                // Check current level selector and per-level settings
+                const levelSelector = iframeDoc.getElementById('levelSelector');
+                const currentLevel = levelSelector ? levelSelector.selectedIndex : -1;
+                log(`Current level selector: ${currentLevel} (selectedIndex)`, 'info');
+                
+                if (levelSelector && levelSelector.value !== '-1') {
+                    log(`⚠️ WARNING: Level ${levelSelector.value} is selected - per-level settings may override global!`, 'info');
+                    
+                    // Reset to global level
+                    log(`Resetting to global level (no specific level selected)`, 'info');
+                    levelSelector.selectedIndex = 0; // First option should be "-- Chọn hàng --"
+                    levelSelector.dispatchEvent(new Event('change'));
+                    await waitFor(500);
+                }
+                
+                const originalWidth = parseInt(widthSlider.value) || 180;
+                const originalHeight = parseInt(heightSlider.value) || 100;
+                
+                // Use smaller increments that stay within slider limits
+                const maxWidth = parseInt(widthSlider.max) || 300;
+                const maxHeight = parseInt(heightSlider.max) || 200;
+                const newWidth = Math.min(originalWidth + 25, maxWidth); // Stay within limits
+                const newHeight = Math.min(originalHeight + 20, maxHeight); // Stay within limits
+                
+                log(`Slider constraints: width max=${maxWidth}, height max=${maxHeight}`, 'info');
+                log(`Event test dimensions: ${originalWidth}x${originalHeight} → ${newWidth}x${newHeight}`, 'info');
+                log(`Current rect dimensions before test: ${parseFloat(firstRect.getAttribute('width'))}x${parseFloat(firstRect.getAttribute('height'))}`, 'info');
+                
+                // Check if global variables are accessible in iframe
+                const hasDefaultWidth = typeof iframeWindow.defaultNodeWidth !== 'undefined';
+                const hasWindowWidth = typeof iframeWindow.window?.defaultNodeWidth !== 'undefined';
+                log(`Global variables accessible: defaultNodeWidth=${hasDefaultWidth}, window.defaultNodeWidth=${hasWindowWidth}`, 'info');
+                
+                if (hasWindowWidth) {
+                    log(`Current window.defaultNodeWidth: ${iframeWindow.window.defaultNodeWidth}`, 'info');
+                    log(`Current window.defaultNodeHeight: ${iframeWindow.window.defaultNodeHeight}`, 'info');
+                }
+                
+                // Test width via events
+                const beforeEventWidth = parseFloat(firstRect.getAttribute('width'));
+                
+                log(`Setting widthSlider.value from ${widthSlider.value} to ${newWidth}`, 'info');
+                widthSlider.value = newWidth;
+                
+                // Check if value was actually set
+                log(`widthSlider.value after setting: ${widthSlider.value}`, 'info');
+                
+                // Trigger event with detailed logging
+                log(`Triggering input event...`, 'info');
+                widthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                // Check global variable immediately after event
+                if (typeof iframeWindow.window?.defaultNodeWidth !== 'undefined') {
+                    log(`window.defaultNodeWidth after event: ${iframeWindow.window.defaultNodeWidth}`, 'info');
+                }
+                
+                // Try to call updateDisplay if available
+                if (typeof iframeWindow.updateDisplay === 'function') {
+                    log('Calling updateDisplay() function', 'info');
+                    iframeWindow.updateDisplay();
+                    
+                    // Check rect after updateDisplay
+                    const afterUpdateWidth = parseFloat(firstRect.getAttribute('width'));
+                    log(`Rect width after updateDisplay: ${afterUpdateWidth}`, 'info');
+                } else {
+                    log('updateDisplay() function not available', 'info');
+                }
+                
+                await waitFor(2000); // Wait longer before checking result
+                
+                const afterEventWidth = parseFloat(firstRect.getAttribute('width'));
+                
+                // Final check of global variables
+                if (typeof iframeWindow.window?.defaultNodeWidth !== 'undefined') {
+                    log(`Final window.defaultNodeWidth: ${iframeWindow.window.defaultNodeWidth}`, 'info');
+                }
+                
+                const eventWidthWorked = Math.abs(afterEventWidth - newWidth) < 10;
+                
+                log(`Event width: ${beforeEventWidth} → ${afterEventWidth} (expected: ${newWidth})`, eventWidthWorked ? 'success' : 'error');
+                addResult('Event-Based Width Change', eventWidthWorked, `${beforeEventWidth} → ${afterEventWidth} (expected: ${newWidth})`);
+                
+                // Similar detailed logging for height
+                const beforeEventHeight = parseFloat(firstRect.getAttribute('height'));
+                
+                log(`Setting heightSlider.value from ${heightSlider.value} to ${newHeight}`, 'info');
+                heightSlider.value = newHeight;
+                log(`heightSlider.value after setting: ${heightSlider.value}`, 'info');
+                
+                heightSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                if (typeof iframeWindow.window?.defaultNodeHeight !== 'undefined') {
+                    log(`window.defaultNodeHeight after event: ${iframeWindow.window.defaultNodeHeight}`, 'info');
+                }
+                
+                if (typeof iframeWindow.updateDisplay === 'function') {
+                    iframeWindow.updateDisplay();
+                }
+                
+                await waitFor(2000); // Wait longer before checking result
+                
+                const afterEventHeight = parseFloat(firstRect.getAttribute('height'));
+                const eventHeightWorked = Math.abs(afterEventHeight - newHeight) < 10;
+                
+                log(`Event height: ${beforeEventHeight} → ${afterEventHeight} (expected: ${newHeight})`, eventHeightWorked ? 'success' : 'error');
+                addResult('Event-Based Height Change', eventHeightWorked, `${beforeEventHeight} → ${afterEventHeight} (expected: ${newHeight})`);
+                
+                // Restore original values AFTER test completes
+                log('Restoring original values...', 'info');
+                await waitFor(500); // Give time for final measurements
+                
+                widthSlider.value = originalWidth;
+                heightSlider.value = originalHeight;
+                widthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                heightSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                
+                if (typeof iframeWindow.updateDisplay === 'function') {
+                    iframeWindow.updateDisplay();
+                }
+                
+                await waitFor(500); // Wait for restoration to complete
+                
+                log('✅ Event-based test completed', 'success');
+                
+                // Summary
+                const totalTests = testResults.length;
+                const passedTests = testResults.filter(r => r.passed).length;
+                log(`📊 Test Summary: ${passedTests}/${totalTests} passed`, passedTests === totalTests ? 'success' : 'error');
+                
+            } catch (error) {
+                log(`❌ Event test error: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "family-tree-ui-tests",
+  "version": "1.0.0",
+  "description": "UI tests for family tree dimension changes",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0"
+  }
+}

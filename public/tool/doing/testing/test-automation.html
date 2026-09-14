@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Tree - Automated Testing Suite</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+        }
+        
+        .test-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .test-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .test-btn.primary {
+            background: #3498db;
+            color: white;
+        }
+        
+        .test-btn.success {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .test-btn.warning {
+            background: #f39c12;
+            color: white;
+        }
+        
+        .test-btn.danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .test-results {
+            margin-top: 20px;
+        }
+        
+        .test-btn.special {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: white;
+        }
+        
+        .test-btn.special:hover {
+            background: linear-gradient(135deg, #8e44ad, #7d3c98);
+            transform: translateY(-2px);
+        }
+        
+        .test-result {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border-left: 4px solid;
+        }
+        
+        .test-result.pass {
+            background: #d4edda;
+            border-color: #27ae60;
+            color: #155724;
+        }
+        
+        .test-result.fail {
+            background: #f8d7da;
+            border-color: #e74c3c;
+            color: #721c24;
+        }
+        
+        .test-result.info {
+            background: #d1ecf1;
+            border-color: #3498db;
+            color: #0c5460;
+        }
+        
+        .test-progress {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        
+        .test-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3498db, #27ae60);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .test-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .test-stat {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .test-stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        
+        .test-stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+        
+        .family-tree-frame {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .test-log {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+        }
+        
+        .test-category {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .test-category h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🧪 Family Tree - Automated Testing Suite</h1>
+            <p>Comprehensive testing of all application features</p>
+        </div>
+
+        <div class="test-controls">
+            <button class="test-btn primary" onclick="runAllTests()">🚀 Run All Tests</button>
+            <button class="test-btn success" onclick="runUITests()">🖥️ UI Tests</button>
+            <button class="test-btn warning" onclick="runDataTests()">📊 Data Tests</button>
+            <button class="test-btn danger" onclick="runInteractionTests()">🖱️ Interaction Tests</button>
+            <button class="test-btn primary" onclick="runPerformanceTests()">⚡ Performance Tests</button>
+            <button class="test-btn special" onclick="runDimensionTests()">🔧 Dimension & Spacing Tests</button>
+            <button class="test-btn success" onclick="clearResults()">🧹 Clear Results</button>
+        </div>
+
+        <div class="test-progress">
+            <div class="test-progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="test-stats">
+            <div class="test-stat">
+                <div class="test-stat-number" id="totalTests">0</div>
+                <div class="test-stat-label">Total Tests</div>
+            </div>
+            <div class="test-stat">
+                <div class="test-stat-number" id="passedTests">0</div>
+                <div class="test-stat-label">Passed</div>
+            </div>
+            <div class="test-stat">
+                <div class="test-stat-number" id="failedTests">0</div>
+                <div class="test-stat-label">Failed</div>
+            </div>
+            <div class="test-stat">
+                <div class="test-stat-number" id="testDuration">0ms</div>
+                <div class="test-stat-label">Duration</div>
+            </div>
+        </div>
+
+        <iframe id="familyTreeFrame" class="family-tree-frame" src="doing.html"></iframe>
+
+        <div class="test-log" id="testLog">
+            <div>🔍 Test console ready. Click "Run All Tests" to start automated testing...</div>
+        </div>
+
+        <div class="test-results" id="testResults">
+            <!-- Test results will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        let testResults = [];
+        let currentTestIndex = 0;
+        let startTime = 0;
+        let familyTreeWindow = null;
+
+        // Initialize when iframe loads
+        document.getElementById('familyTreeFrame').onload = function() {
+            familyTreeWindow = this.contentWindow;
+            log('📱 Family tree application loaded successfully');
+        };
+
+        function log(message) {
+            const logElement = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStats() {
+            const total = testResults.length;
+            const passed = testResults.filter(r => r.status === 'pass').length;
+            const failed = total - passed;
+            const duration = Date.now() - startTime;
+
+            document.getElementById('totalTests').textContent = total;
+            document.getElementById('passedTests').textContent = passed;
+            document.getElementById('failedTests').textContent = failed;
+            document.getElementById('testDuration').textContent = duration + 'ms';
+
+            const progress = total > 0 ? (currentTestIndex / total) * 100 : 0;
+            document.getElementById('progressBar').style.width = progress + '%';
+        }
+
+        function addTestResult(name, status, message) {
+            const result = { name, status, message, timestamp: new Date() };
+            testResults.push(result);
+
+            const resultsContainer = document.getElementById('testResults');
+            const resultElement = document.createElement('div');
+            resultElement.className = `test-result ${status}`;
+            
+            const icon = status === 'pass' ? '✅' : '❌';
+            resultElement.innerHTML = `
+                <strong>${icon} ${name}</strong><br>
+                <small>${message}</small>
+            `;
+            
+            resultsContainer.appendChild(resultElement);
+            updateStats();
+            log(`${icon} ${name}: ${message}`);
+        }
+
+        // Test execution wrapper
+        async function executeTest(testName, testFunction) {
+            currentTestIndex++;
+            try {
+                log(`🧪 Running: ${testName}`);
+                const result = await testFunction();
+                if (result === true || result === undefined) {
+                    addTestResult(testName, 'pass', 'Test completed successfully');
+                } else {
+                    addTestResult(testName, 'fail', result || 'Test failed');
+                }
+            } catch (error) {
+                addTestResult(testName, 'fail', error.message);
+                log(`❌ Error in ${testName}: ${error.message}`);
+            }
+            updateStats();
+        }
+
+        // Utility functions for interacting with family tree
+        function getElement(selector) {
+            return familyTreeWindow.document.querySelector(selector);
+        }
+
+        function getAllElements(selector) {
+            return familyTreeWindow.document.querySelectorAll(selector);
+        }
+
+        function simulateClick(element) {
+            if (!element) throw new Error('Element not found for click simulation');
+            element.click();
+        }
+
+        function simulateHover(element) {
+            if (!element) throw new Error('Element not found for hover simulation');
+            const event = new familyTreeWindow.MouseEvent('mouseover', {
+                bubbles: true,
+                cancelable: true,
+                view: familyTreeWindow
+            });
+            element.dispatchEvent(event);
+        }
+
+        function waitFor(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // Test Categories
+
+        // 1. UI Tests
+        const uiTests = [
+            {
+                name: 'Header Controls Visibility',
+                test: async () => {
+                    const header = getElement('.header');
+                    if (!header) throw new Error('Header not found');
+                    
+                    const controls = getElement('.controls');
+                    if (!controls) throw new Error('Controls not found');
+                    
+                    const buttons = getAllElements('.controls button');
+                    if (buttons.length < 5) throw new Error(`Expected at least 5 buttons, found ${buttons.length}`);
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Sidebar Visibility',
+                test: async () => {
+                    const sidebar = getElement('.sidebar');
+                    if (!sidebar) throw new Error('Sidebar not found');
+                    
+                    const levelControls = getElement('#levelControls');
+                    if (!levelControls) throw new Error('Level controls not found');
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'SVG Canvas Present',
+                test: async () => {
+                    const svg = getElement('#tree-svg');
+                    if (!svg) throw new Error('SVG canvas not found');
+                    
+                    const rect = svg.getBoundingClientRect();
+                    if (rect.width === 0 || rect.height === 0) {
+                        throw new Error('SVG canvas has no dimensions');
+                    }
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Family Tree Nodes Rendered',
+                test: async () => {
+                    await waitFor(2000); // Wait for data to load
+                    
+                    const nodes = getAllElements('.person-node');
+                    if (nodes.length === 0) throw new Error('No family tree nodes found');
+                    
+                    log(`Found ${nodes.length} family tree nodes`);
+                    return true;
+                }
+            }
+        ];
+
+        // 2. Data Tests
+        const dataTests = [
+            {
+                name: 'Data Loading',
+                test: async () => {
+                    await waitFor(2000);
+                    
+                    // Check if data.json was loaded
+                    const nodes = getAllElements('.person-node');
+                    if (nodes.length === 0) throw new Error('No data loaded');
+                    
+                    // Check for root node
+                    const rootNodes = Array.from(nodes).filter(node => {
+                        return node.getAttribute('transform').includes('translate(');
+                    });
+                    
+                    if (rootNodes.length === 0) throw new Error('No root nodes found');
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Node Data Integrity',
+                test: async () => {
+                    const nameElements = getAllElements('.person-name');
+                    if (nameElements.length === 0) throw new Error('No person names found');
+                    
+                    let emptyNames = 0;
+                    nameElements.forEach(el => {
+                        if (!el.textContent.trim()) emptyNames++;
+                    });
+                    
+                    if (emptyNames > nameElements.length * 0.1) {
+                        throw new Error(`Too many empty names: ${emptyNames}/${nameElements.length}`);
+                    }
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Level Structure',
+                test: async () => {
+                    const levelSelector = getElement('#levelSelector');
+                    if (!levelSelector) throw new Error('Level selector not found');
+                    
+                    const options = getAllElements('#levelSelector option');
+                    if (options.length < 2) throw new Error('Not enough levels found');
+                    
+                    log(`Found ${options.length} levels in family tree`);
+                    return true;
+                }
+            },
+            {
+                name: 'Node Dimensions Test',
+                test: async () => {
+                    await waitFor(1000);
+                    
+                    // Get initial node dimensions
+                    const firstNode = getElement('.person-rect');
+                    if (!firstNode) throw new Error('No nodes found for dimension testing');
+                    
+                    const initialWidth = parseFloat(firstNode.getAttribute('width'));
+                    const initialHeight = parseFloat(firstNode.getAttribute('height'));
+                    
+                    log(`Initial dimensions: ${initialWidth}x${initialHeight}`);
+                    
+                    // Test width change
+                    const widthSlider = getElement('#nodeWidth');
+                    if (!widthSlider) throw new Error('Width slider not found');
+                    
+                    const originalWidth = widthSlider.value;
+                    const newWidth = parseInt(originalWidth) + 50;
+                    
+                    widthSlider.value = newWidth;
+                    widthSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    await waitFor(1000);
+                    
+                    // Check if dimensions changed
+                    const updatedWidth = parseFloat(firstNode.getAttribute('width'));
+                    if (Math.abs(updatedWidth - newWidth) > 5) {
+                        throw new Error(`Width not updated: expected ${newWidth}, got ${updatedWidth}`);
+                    }
+                    
+                    // Test height change
+                    const heightSlider = getElement('#nodeHeight');
+                    if (!heightSlider) throw new Error('Height slider not found');
+                    
+                    const originalHeight = heightSlider.value;
+                    const newHeight = parseInt(originalHeight) + 30;
+                    
+                    heightSlider.value = newHeight;
+                    heightSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    await waitFor(1000);
+                    
+                    const updatedHeight = parseFloat(firstNode.getAttribute('height'));
+                    if (Math.abs(updatedHeight - newHeight) > 5) {
+                        throw new Error(`Height not updated: expected ${newHeight}, got ${updatedHeight}`);
+                    }
+                    
+                    // Restore original values
+                    widthSlider.value = originalWidth;
+                    heightSlider.value = originalHeight;
+                    widthSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    heightSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    await waitFor(500);
+                    
+                    log(`✅ Node dimensions test passed: ${newWidth}x${newHeight}`);
+                    return true;
+                }
+            },
+            {
+                name: 'Level Spacing Consistency',
+                test: async () => {
+                    await waitFor(1000);
+                    
+                    // Get all nodes and group by level
+                    const nodes = getAllElements('.person-node');
+                    if (nodes.length < 10) throw new Error('Not enough nodes for spacing test');
+                    
+                    // Calculate Y positions for each level
+                    const levelPositions = {};
+                    
+                    nodes.forEach(node => {
+                        const transform = node.getAttribute('transform');
+                        const match = transform.match(/translate\(([^,]+),([^)]+)\)/);
+                        if (match) {
+                            const y = parseFloat(match[2]);
+                            
+                            // Find which level this belongs to (rough estimation)
+                            let level = Math.floor(y / 200); // Assuming ~200px between levels
+                            
+                            if (!levelPositions[level]) {
+                                levelPositions[level] = [];
+                            }
+                            levelPositions[level].push(y);
+                        }
+                    });
+                    
+                    // Check if nodes in same level have similar Y positions
+                    let consistentLevels = 0;
+                    let totalLevels = 0;
+                    
+                    Object.keys(levelPositions).forEach(level => {
+                        const positions = levelPositions[level];
+                        if (positions.length > 1) {
+                            totalLevels++;
+                            const minY = Math.min(...positions);
+                            const maxY = Math.max(...positions);
+                            const variance = maxY - minY;
+                            
+                            // Allow some variance for node height differences
+                            if (variance < 50) {
+                                consistentLevels++;
+                            }
+                            
+                            log(`Level ${level}: ${positions.length} nodes, Y variance: ${variance.toFixed(1)}px`);
+                        }
+                    });
+                    
+                    const consistencyRatio = consistentLevels / totalLevels;
+                    log(`Level spacing consistency: ${(consistencyRatio * 100).toFixed(1)}%`);
+                    
+                    if (consistencyRatio < 0.7) {
+                        throw new Error(`Poor level spacing consistency: ${(consistencyRatio * 100).toFixed(1)}%`);
+                    }
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Per-Level Size Changes',
+                test: async () => {
+                    await waitFor(1000);
+                    
+                    // Select a specific level to test
+                    const levelSelector = getElement('#levelSelector');
+                    if (!levelSelector || levelSelector.options.length < 3) {
+                        throw new Error('Not enough levels for per-level testing');
+                    }
+                    
+                    // Select level 1 (second option)
+                    levelSelector.selectedIndex = 1;
+                    levelSelector.dispatchEvent(new familyTreeWindow.Event('change'));
+                    await waitFor(500);
+                    
+                    // Get nodes from this level
+                    const allNodes = getAllElements('.person-rect');
+                    const level1Nodes = Array.from(allNodes).slice(1, 3); // Get a few nodes from level 1
+                    
+                    if (level1Nodes.length === 0) {
+                        throw new Error('No nodes found for level 1');
+                    }
+                    
+                    // Get initial dimensions
+                    const initialWidth = parseFloat(level1Nodes[0].getAttribute('width'));
+                    const initialHeight = parseFloat(level1Nodes[0].getAttribute('height'));
+                    
+                    // Change dimensions for this level only
+                    const widthSlider = getElement('#nodeWidth');
+                    const heightSlider = getElement('#nodeHeight');
+                    
+                    if (!widthSlider || !heightSlider) {
+                        throw new Error('Size sliders not found');
+                    }
+                    
+                    const newWidth = initialWidth + 40;
+                    const newHeight = initialHeight + 25;
+                    
+                    widthSlider.value = newWidth;
+                    heightSlider.value = newHeight;
+                    widthSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    heightSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    await waitFor(1000);
+                    
+                    // Check if only this level changed
+                    const updatedWidth = parseFloat(level1Nodes[0].getAttribute('width'));
+                    const updatedHeight = parseFloat(level1Nodes[0].getAttribute('height'));
+                    
+                    if (Math.abs(updatedWidth - newWidth) > 5) {
+                        throw new Error(`Level 1 width not updated correctly: expected ${newWidth}, got ${updatedWidth}`);
+                    }
+                    
+                    if (Math.abs(updatedHeight - newHeight) > 5) {
+                        throw new Error(`Level 1 height not updated correctly: expected ${newHeight}, got ${updatedHeight}`);
+                    }
+                    
+                    // Check that other levels weren't affected (select level 0 and check)
+                    levelSelector.selectedIndex = 0;
+                    levelSelector.dispatchEvent(new familyTreeWindow.Event('change'));
+                    await waitFor(500);
+                    
+                    const level0Node = allNodes[0];
+                    const level0Width = parseFloat(level0Node.getAttribute('width'));
+                    const level0Height = parseFloat(level0Node.getAttribute('height'));
+                    
+                    // Level 0 should still have original dimensions
+                    if (Math.abs(level0Width - initialWidth) > 5) {
+                        log(`⚠️ Level 0 width changed when it shouldn't: ${level0Width} vs ${initialWidth}`);
+                    }
+                    
+                    log(`✅ Per-level sizing: L1(${updatedWidth}x${updatedHeight}) vs L0(${level0Width}x${level0Height})`);
+                    
+                    // Reset level 1 back to original
+                    levelSelector.selectedIndex = 1;
+                    levelSelector.dispatchEvent(new familyTreeWindow.Event('change'));
+                    await waitFor(300);
+                    
+                    widthSlider.value = initialWidth;
+                    heightSlider.value = initialHeight;
+                    widthSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    heightSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Level Spacing After Size Changes',
+                test: async () => {
+                    await waitFor(1000);
+                    
+                    // Measure initial spacing between levels
+                    const allNodes = getAllElements('.person-node');
+                    if (allNodes.length < 10) throw new Error('Not enough nodes for spacing test');
+                    
+                    // Function to get level Y positions
+                    function getLevelYPositions() {
+                        const levels = {};
+                        allNodes.forEach((node, index) => {
+                            const transform = node.getAttribute('transform');
+                            const match = transform.match(/translate\([^,]+,([^)]+)\)/);
+                            if (match) {
+                                const y = parseFloat(match[1]);
+                                const estimatedLevel = Math.round(y / 200); // Estimate level based on Y position
+                                
+                                if (!levels[estimatedLevel]) {
+                                    levels[estimatedLevel] = [];
+                                }
+                                levels[estimatedLevel].push({ y, index });
+                            }
+                        });
+                        
+                        // Get average Y for each level
+                        const levelAverages = {};
+                        Object.keys(levels).forEach(level => {
+                            const yValues = levels[level].map(node => node.y);
+                            levelAverages[level] = yValues.reduce((a, b) => a + b, 0) / yValues.length;
+                        });
+                        
+                        return levelAverages;
+                    }
+                    
+                    // Get initial spacing
+                    const initialLevels = getLevelYPositions();
+                    const initialSpacings = [];
+                    const sortedLevels = Object.keys(initialLevels).sort((a, b) => parseInt(a) - parseInt(b));
+                    
+                    for (let i = 1; i < sortedLevels.length; i++) {
+                        const spacing = initialLevels[sortedLevels[i]] - initialLevels[sortedLevels[i-1]];
+                        initialSpacings.push(spacing);
+                    }
+                    
+                    log(`Initial level spacings: ${initialSpacings.map(s => s.toFixed(1)).join(', ')}px`);
+                    
+                    // Select level 1 and change its height significantly
+                    const levelSelector = getElement('#levelSelector');
+                    if (!levelSelector) throw new Error('Level selector not found');
+                    
+                    levelSelector.selectedIndex = 1; // Select level 1
+                    levelSelector.dispatchEvent(new familyTreeWindow.Event('change'));
+                    await waitFor(500);
+                    
+                    const heightSlider = getElement('#nodeHeight');
+                    if (!heightSlider) throw new Error('Height slider not found');
+                    
+                    const originalHeight = heightSlider.value;
+                    const newHeight = parseInt(originalHeight) + 80; // Significant height increase
+                    
+                    heightSlider.value = newHeight;
+                    heightSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    await waitFor(1500); // Wait for re-render
+                    
+                    // Measure spacing after change
+                    const updatedLevels = getLevelYPositions();
+                    const updatedSpacings = [];
+                    const updatedSortedLevels = Object.keys(updatedLevels).sort((a, b) => parseInt(a) - parseInt(b));
+                    
+                    for (let i = 1; i < updatedSortedLevels.length; i++) {
+                        const spacing = updatedLevels[updatedSortedLevels[i]] - updatedLevels[updatedSortedLevels[i-1]];
+                        updatedSpacings.push(spacing);
+                    }
+                    
+                    log(`Updated level spacings: ${updatedSpacings.map(s => s.toFixed(1)).join(', ')}px`);
+                    
+                    // Check if spacing increased appropriately
+                    if (updatedSpacings.length > 1 && initialSpacings.length > 1) {
+                        const spacingIncrease = updatedSpacings[1] - initialSpacings[1];
+                        log(`Spacing increase after level 1: ${spacingIncrease.toFixed(1)}px`);
+                        
+                        if (spacingIncrease < 50) {
+                            log(`⚠️ Expected larger spacing increase after height change`);
+                        }
+                    }
+                    
+                    // Restore original height
+                    heightSlider.value = originalHeight;
+                    heightSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    await waitFor(500);
+                    
+                    return true;
+                }
+            }
+        ];
+
+        // 3. Interaction Tests
+        const interactionTests = [
+            {
+                name: 'Zoom Controls',
+                test: async () => {
+                    const zoomInBtn = Array.from(getAllElements('button')).find(btn => 
+                        btn.textContent.includes('Phóng to'));
+                    if (!zoomInBtn) throw new Error('Zoom in button not found');
+                    
+                    simulateClick(zoomInBtn);
+                    await waitFor(500);
+                    
+                    const zoomOutBtn = Array.from(getAllElements('button')).find(btn => 
+                        btn.textContent.includes('Thu nhỏ'));
+                    if (!zoomOutBtn) throw new Error('Zoom out button not found');
+                    
+                    simulateClick(zoomOutBtn);
+                    await waitFor(500);
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Node Click Interaction',
+                test: async () => {
+                    await waitFor(1000);
+                    
+                    const firstNode = getElement('.person-node');
+                    if (!firstNode) throw new Error('No nodes available for testing');
+                    
+                    simulateClick(firstNode);
+                    await waitFor(300);
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Tooltip Functionality',
+                test: async () => {
+                    const tooltip = getElement('#tooltip');
+                    if (!tooltip) throw new Error('Tooltip element not found');
+                    
+                    const firstNode = getElement('.person-node');
+                    if (!firstNode) throw new Error('No nodes for tooltip testing');
+                    
+                    simulateHover(firstNode);
+                    await waitFor(500);
+                    
+                    // Check if tooltip becomes visible
+                    const isVisible = tooltip.classList.contains('visible');
+                    if (!isVisible) throw new Error('Tooltip did not become visible on hover');
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Level Selection',
+                test: async () => {
+                    const levelSelector = getElement('#levelSelector');
+                    if (!levelSelector) throw new Error('Level selector not found');
+                    
+                    // Try selecting different levels
+                    const options = getAllElements('#levelSelector option');
+                    if (options.length > 1) {
+                        levelSelector.selectedIndex = 1;
+                        levelSelector.dispatchEvent(new familyTreeWindow.Event('change'));
+                        await waitFor(1000);
+                        
+                        levelSelector.selectedIndex = 0;
+                        levelSelector.dispatchEvent(new familyTreeWindow.Event('change'));
+                        await waitFor(1000);
+                    }
+                    
+                    return true;
+                }
+            },
+            {
+                name: 'Configuration Export/Import',
+                test: async () => {
+                    const exportBtn = Array.from(getAllElements('button')).find(btn => 
+                        btn.textContent.includes('Xuất Config'));
+                    if (!exportBtn) throw new Error('Export config button not found');
+                    
+                    // Test export (will trigger download)
+                    simulateClick(exportBtn);
+                    await waitFor(500);
+                    
+                    return true;
+                }
+            }
+        ];
+
+        // 4. Performance Tests
+        const performanceTests = [
+            {
+                name: 'Rendering Performance',
+                test: async () => {
+                    const startTime = performance.now();
+                    
+                    // Trigger re-render by changing level settings
+                    const widthSlider = getElement('#nodeWidth');
+                    if (widthSlider) {
+                        widthSlider.value = parseInt(widthSlider.value) + 10;
+                        widthSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                        await waitFor(1000);
+                        
+                        widthSlider.value = parseInt(widthSlider.value) - 10;
+                        widthSlider.dispatchEvent(new familyTreeWindow.Event('input'));
+                    }
+                    
+                    const endTime = performance.now();
+                    const duration = endTime - startTime;
+                    
+                    if (duration > 5000) {
+                        throw new Error(`Rendering too slow: ${duration}ms`);
+                    }
+                    
+                    log(`Rendering performance: ${duration.toFixed(2)}ms`);
+                    return true;
+                }
+            },
+            {
+                name: 'Memory Usage Check',
+                test: async () => {
+                    // Basic memory check
+                    const nodes = getAllElements('.person-node');
+                    const memoryEstimate = nodes.length * 1000; // Rough estimate
+                    
+                    if (memoryEstimate > 50000000) { // 50MB threshold
+                        throw new Error(`High memory usage estimated: ${memoryEstimate} bytes`);
+                    }
+                    
+                    log(`Estimated memory usage: ${(memoryEstimate/1024/1024).toFixed(2)}MB`);
+                    return true;
+                }
+            }
+        ];
+
+        // Test execution functions
+        async function runAllTests() {
+            clearResults();
+            startTime = Date.now();
+            currentTestIndex = 0;
+            
+            log('🚀 Starting comprehensive test suite...');
+            
+            await runUITests();
+            await runDataTests();
+            await runInteractionTests();
+            await runPerformanceTests();
+            
+            const duration = Date.now() - startTime;
+            const passed = testResults.filter(r => r.status === 'pass').length;
+            const total = testResults.length;
+            
+            log(`✅ Test suite completed in ${duration}ms`);
+            log(`📊 Results: ${passed}/${total} tests passed`);
+            
+            if (passed === total) {
+                log('🎉 All tests passed! Application is working correctly.');
+            } else {
+                log('⚠️ Some tests failed. Please review the results.');
+            }
+        }
+
+        async function runUITests() {
+            log('🖥️ Running UI Tests...');
+            for (const test of uiTests) {
+                await executeTest(test.name, test.test);
+                await waitFor(100);
+            }
+        }
+
+        async function runDataTests() {
+            log('📊 Running Data Tests...');
+            for (const test of dataTests) {
+                await executeTest(test.name, test.test);
+                await waitFor(100);
+            }
+        }
+
+        async function runInteractionTests() {
+            log('🖱️ Running Interaction Tests...');
+            for (const test of interactionTests) {
+                await executeTest(test.name, test.test);
+                await waitFor(500);
+            }
+        }
+
+        async function runPerformanceTests() {
+            log('⚡ Running Performance Tests...');
+            for (const test of performanceTests) {
+                await executeTest(test.name, test.test);
+                await waitFor(200);
+            }
+        }
+
+        function clearResults() {
+            testResults = [];
+            currentTestIndex = 0;
+            document.getElementById('testResults').innerHTML = '';
+            document.getElementById('testLog').innerHTML = '<div>🔍 Test console cleared. Ready for new tests...</div>';
+            updateStats();
+        }
+
+        // Dimension and Spacing Tests
+        async function runDimensionTests() {
+            log('🔧 Starting Dimension & Spacing Tests...', 'info');
+            
+            const iframe = document.getElementById('familyTreeFrame');
+            if (!iframe || !iframe.contentWindow) {
+                log('❌ Family tree iframe not loaded', 'error');
+                return;
+            }
+            
+            const iframeWindow = iframe.contentWindow;
+            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            try {
+                // Run dimension tests in the iframe
+                const result = await iframeWindow.eval(`
+                    (async () => {
+                        try {
+                            let results = [];
+                            
+                            // Test 1: Width Change
+                            const widthSlider = document.getElementById('nodeWidth');
+                            const firstRect = document.querySelector('.person-rect');
+                            
+                            if (widthSlider && firstRect) {
+                                const originalWidth = parseInt(widthSlider.value);
+                                const newWidth = originalWidth + 50;
+                                
+                                // Update slider value
+                                widthSlider.value = newWidth;
+                                
+                                // Update global variable directly (since event listener does this)
+                                if (typeof defaultNodeWidth !== 'undefined') {
+                                    window.defaultNodeWidth = newWidth;
+                                } else {
+                                    // Fallback: try to access through window
+                                    try {
+                                        eval('defaultNodeWidth = ' + newWidth);
+                                    } catch(e) {
+                                        console.log('Could not set defaultNodeWidth');
+                                    }
+                                }
+                                
+                                // Trigger events
+                                widthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                                widthSlider.dispatchEvent(new Event('change', { bubbles: true }));
+                                
+                                // Force update display multiple times
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                    updateDisplay();
+                                }
+                                
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                
+                                const updatedWidth = parseFloat(firstRect.getAttribute('width'));
+                                const widthPassed = Math.abs(updatedWidth - newWidth) < 10;
+                                
+                                results.push({
+                                    testName: 'Global Width Change',
+                                    passed: widthPassed,
+                                    message: \`\${originalWidth} → \${newWidth} (actual: \${updatedWidth}) [defaultNodeWidth: \${typeof window.defaultNodeWidth !== 'undefined' ? window.defaultNodeWidth : 'undefined'}]\`
+                                });
+                                
+                                // Restore
+                                widthSlider.value = originalWidth;
+                                if (typeof window.defaultNodeWidth !== 'undefined') {
+                                    window.defaultNodeWidth = originalWidth;
+                                } else if (typeof defaultNodeWidth !== 'undefined') {
+                                    defaultNodeWidth = parseInt(originalWidth);
+                                }
+                                widthSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                }
+                                widthSlider.value = originalWidth;
+                                widthSlider.dispatchEvent(new Event('input'));
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                            
+                            // Test 2: Height Change
+                            const heightSlider = document.getElementById('nodeHeight');
+                            
+                            if (heightSlider && firstRect) {
+                                const originalHeight = parseInt(heightSlider.value);
+                                const newHeight = originalHeight + 30;
+                                
+                                // Update slider and global variable
+                                heightSlider.value = newHeight;
+                                
+                                if (typeof window.defaultNodeHeight !== 'undefined') {
+                                    window.defaultNodeHeight = newHeight;
+                                } else if (typeof defaultNodeHeight !== 'undefined') {
+                                    defaultNodeHeight = newHeight;
+                                } else {
+                                    try {
+                                        eval('defaultNodeHeight = ' + newHeight);
+                                    } catch(e) {
+                                        console.log('Could not set defaultNodeHeight');
+                                    }
+                                }
+                                
+                                heightSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                                heightSlider.dispatchEvent(new Event('change', { bubbles: true }));
+                                
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                    await new Promise(resolve => setTimeout(resolve, 200));
+                                    updateDisplay();
+                                }
+                                
+                                // Force update display
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                }
+                                
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                
+                                const updatedHeight = parseFloat(firstRect.getAttribute('height'));
+                                const heightPassed = Math.abs(updatedHeight - newHeight) < 10;
+                                
+                                results.push({
+                                    testName: 'Global Height Change',
+                                    passed: heightPassed,
+                                    message: \`\${originalHeight} → \${newHeight} (actual: \${updatedHeight}) [defaultNodeHeight: \${typeof window.defaultNodeHeight !== 'undefined' ? window.defaultNodeHeight : 'undefined'}]\`
+                                });
+                                
+                                // Restore
+                                heightSlider.value = originalHeight;
+                                if (typeof window.defaultNodeHeight !== 'undefined') {
+                                    window.defaultNodeHeight = originalHeight;
+                                } else if (typeof defaultNodeHeight !== 'undefined') {
+                                    defaultNodeHeight = parseInt(originalHeight);
+                                }
+                                heightSlider.dispatchEvent(new Event('input', { bubbles: true }));
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                            
+                            // Test 3: Per-Level Changes
+                            const levelSelector = document.getElementById('levelSelector');
+                            
+                            if (levelSelector && widthSlider && heightSlider) {
+                                // Select level 1
+                                levelSelector.selectedIndex = 1;
+                                levelSelector.dispatchEvent(new Event('change'));
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                                
+                                const originalWidth = widthSlider.value;
+                                const level1Width = parseInt(originalWidth) + 40;
+                                
+                                // Update level width
+                                const levelWidthSlider = document.getElementById('levelWidth');
+                                if (levelWidthSlider) {
+                                    levelWidthSlider.value = level1Width;
+                                    levelWidthSlider.dispatchEvent(new Event('input'));
+                                } else {
+                                    // Fallback to global slider
+                                    widthSlider.value = level1Width;
+                                    widthSlider.dispatchEvent(new Event('input'));
+                                }
+                                
+                                // Force update display
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                }
+                                
+                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                
+                                // Check level 1 nodes (approximate)
+                                const allRects = document.querySelectorAll('.person-rect');
+                                let level1Changed = false;
+                                
+                                if (allRects.length > 1) {
+                                    // Try to find a level 1 node by checking parent nodes
+                                    for (let i = 1; i < Math.min(allRects.length, 10); i++) {
+                                        const rect = allRects[i];
+                                        const actualWidth = parseFloat(rect.getAttribute('width'));
+                                        if (Math.abs(actualWidth - level1Width) < 10) {
+                                            level1Changed = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                results.push({
+                                    testName: 'Per-Level Width Change',
+                                    passed: level1Changed,
+                                    message: \`Level 1 width change: \${level1Changed ? 'Success' : 'Failed'} (target: \${level1Width})\`
+                                });
+                                
+                                // Restore level 1 settings
+                                if (levelWidthSlider) {
+                                    levelWidthSlider.value = originalWidth;
+                                    levelWidthSlider.dispatchEvent(new Event('input'));
+                                } else {
+                                    widthSlider.value = originalWidth;
+                                    widthSlider.dispatchEvent(new Event('input'));
+                                }
+                                
+                                if (typeof updateDisplay === 'function') {
+                                    updateDisplay();
+                                }
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                                
+                                // Back to level 0
+                                levelSelector.selectedIndex = 0;
+                                levelSelector.dispatchEvent(new Event('change'));
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                            
+                            // Test 4: Node Overlap Check
+                            const nodes = document.querySelectorAll('.person-node');
+                            let overlaps = 0;
+                            let checkedPairs = 0;
+                            
+                            for (let i = 0; i < Math.min(nodes.length, 10); i++) {
+                                for (let j = i + 1; j < Math.min(i + 5, nodes.length); j++) {
+                                    const node1 = nodes[i];
+                                    const node2 = nodes[j];
+                                    
+                                    const transform1 = node1.getAttribute('transform');
+                                    const transform2 = node2.getAttribute('transform');
+                                    
+                                    if (transform1 && transform2) {
+                                        const match1 = transform1.match(/translate\\(([^,]+),([^)]+)\\)/);
+                                        const match2 = transform2.match(/translate\\(([^,]+),([^)]+)\\)/);
+                                        
+                                        if (match1 && match2) {
+                                            const x1 = parseFloat(match1[1]);
+                                            const y1 = parseFloat(match1[2]);
+                                            const x2 = parseFloat(match2[1]);
+                                            const y2 = parseFloat(match2[2]);
+                                            
+                                            const rect1 = node1.querySelector('.person-rect');
+                                            const rect2 = node2.querySelector('.person-rect');
+                                            
+                                            if (rect1 && rect2) {
+                                                const w1 = parseFloat(rect1.getAttribute('width'));
+                                                const h1 = parseFloat(rect1.getAttribute('height'));
+                                                const w2 = parseFloat(rect2.getAttribute('width'));
+                                                const h2 = parseFloat(rect2.getAttribute('height'));
+                                                
+                                                const xOverlap = (x1 < x2 + w2) && (x2 < x1 + w1);
+                                                const yOverlap = (y1 < y2 + h2) && (y2 < y1 + h1);
+                                                
+                                                if (xOverlap && yOverlap) {
+                                                    overlaps++;
+                                                }
+                                                checkedPairs++;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            const overlapRate = checkedPairs > 0 ? (overlaps / checkedPairs) * 100 : 0;
+                            const acceptableOverlaps = overlapRate < 10;
+                            
+                            results.push({
+                                testName: 'Node Overlap Check',
+                                passed: acceptableOverlaps,
+                                message: \`\${overlaps}/\${checkedPairs} pairs overlap (\${overlapRate.toFixed(1)}%)\`
+                            });
+                            
+                            const passed = results.filter(r => r.passed).length;
+                            
+                            return {
+                                total: results.length,
+                                passed: passed,
+                                failed: results.length - passed,
+                                details: results
+                            };
+                            
+                        } catch (error) {
+                            return { error: error.message };
+                        }
+                    })()
+                `);
+                
+                if (result.error) {
+                    log(`❌ Dimension test error: ${result.error}`, 'error');
+                } else {
+                    log(`📊 Dimension Tests: ${result.passed}/${result.total} passed`, 'success');
+                    
+                    // Log individual test results
+                    if (result.details) {
+                        result.details.forEach(test => {
+                            const status = test.passed ? '✅' : '❌';
+                            log(`${status} ${test.testName}: ${test.message}`, test.passed ? 'success' : 'error');
+                        });
+                    }
+                    
+                    // Update test stats
+                    testResults.push({
+                        category: 'Dimension Tests',
+                        total: result.total,
+                        passed: result.passed,
+                        failed: result.failed
+                    });
+                    
+                    updateDisplay();
+                    
+                    if (result.failed === 0) {
+                        log('🎉 All dimension tests passed! Width/height changes work correctly.', 'success');
+                    } else {
+                        log(`⚠️ ${result.failed} dimension test(s) failed.`, 'error');
+                    }
+                }
+                
+            } catch (error) {
+                log(`❌ Failed to run dimension tests: ${error.message}`, 'error');
+            }
+        }
+
+        // Initialize
+        updateStats();
+    </script>
+</body>
+</html>

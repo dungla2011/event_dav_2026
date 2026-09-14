@@ -1,0 +1,76 @@
+node_modules/
+.history/
+/public/hot
+/public/storage
+/storage/*.key
+#/vendor
+.env
+.env.backup
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/.idea
+/.vscode
+*.apk
+*.zip
+*.mp3
+*.mp4
+*.exe
+.git_lab/
+.git/objects/pack/
+
+# Ignore submodule changes
+# public/tool/doing
+# resources/views/index/000
+# vendor/lad-lib/laravel
+# vendor/yourcompany/cost-management/
+vendor/
+
+# Ignore .git directories in nested modules (keep locally, don't commit)
+public/tool/doing/.git/
+resources/views/index/000/.git/
+public/doing/.git/
+
+venv/
+# ============================================================
+# Bổ sung 2026-09-14: chuẩn bị git init lại
+# Nguyên tắc: ignore thứ SINH RA TỰ ĐỘNG, giữ mọi source code
+# ============================================================
+
+# --- Secrets ---
+.env.bak
+.env.testing
+
+# --- Dữ liệu/build sinh ra tự động (task-cli vẫn giữ source) ---
+/task-cli/site/events-dav/tam_thoi/
+/task-cli/vmware/scripts/build/
+/task-cli/vmware/scripts/dist/
+
+# --- Storage runtime ---
+/storage/debugbar/
+/storage/logs/
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/storage/framework/testing/
+/tmp/
+
+# --- Asset nặng, ít thay đổi (file vẫn nằm trên đĩa, chỉ không track) ---
+/public/template/
+/public/images/
+/public/adminlte/
+/public/assert/
+/public/_site/
+/public/phpmyadmin000/
+/public/setup/
+
+# --- Credentials (2026-09-14): không bao giờ commit ---
+config/*firebase*.json
+config/*service-account*.json
+config/*service_account*.json
+*.bak
+*_bak
+*.bak.*

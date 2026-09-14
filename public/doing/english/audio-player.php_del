@@ -1,0 +1,469 @@
+<?php
+/**
+ * Simple Audio Player with Playlist from Folders
+ *
+ * Usage: audio-player.php?folder=path/to/audio/folder
+ */
+
+// Get folder path from query string
+$folderPath = $_GET['folder'] ?? '';
+$baseDir = "/var/glx/english/";
+
+// Build full path
+if (empty($folderPath)) {
+    $basePath = $baseDir;
+} else {
+    $basePath = $baseDir . $folderPath;
+}
+
+// Security: prevent directory traversal
+$basePath = realpath($basePath);
+$baseDir = realpath($baseDir);
+
+if ($basePath === false) {
+    die('Invalid folder path: Folder does not exist');
+}
+
+if ($baseDir === false) {
+    die('Base directory does not exist: ' . $baseDir);
+}
+
+if (strpos($basePath, $baseDir) !== 0) {
+    die('Invalid folder path: Access denied');
+}
+
+/**
+ * Scan directory and get all playlists (subfolders)
+ */
+function getPlaylists($path) {
+    $playlists = [];
+    if (!is_dir($path)) {
+        return $playlists;
+    }
+
+    $items = scandir($path);
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+
+        $fullPath = $path . '/' . $item;
+        if (is_dir($fullPath)) {
+            $playlists[] = [
+                'name' => $item,
+                'path' => $item,
+                'fullPath' => $fullPath
+            ];
+        }
+    }
+
+    return $playlists;
+}
+
+/**
+ * Get all MP3 files from a directory
+ */
+function getMp3Files($path, $relativePath = '') {
+    $mp3Files = [];
+    if (!is_dir($path)) {
+        return $mp3Files;
+    }
+
+    $items = scandir($path);
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+
+        $fullPath = $path . '/' . $item;
+        if (is_file($fullPath) && preg_match('/\.mp3$/i', $item)) {
+            // Create relative path for streaming
+            $streamPath = ltrim($relativePath . '/' . $item, '/');
+            
+            $mp3Files[] = [
+                'name' => pathinfo($item, PATHINFO_FILENAME),
+                'filename' => $item,
+                'path' => 'stream-audio.php?file=' . urlencode($streamPath),
+                'relativePath' => $streamPath,
+                'size' => filesize($fullPath)
+            ];
+        }
+    }
+
+    // Sort by filename
+    usort($mp3Files, function($a, $b) {
+        return strcmp($a['filename'], $b['filename']);
+    });
+
+    return $mp3Files;
+}
+
+// Get all playlists
+$playlists = getPlaylists($basePath);
+
+// Get current playlist
+$currentPlaylist = $_GET['playlist'] ?? ($playlists[0]['name'] ?? '');
+$currentPlaylistPath = $basePath . '/' . $currentPlaylist;
+
+// Build relative path for streaming
+$currentPlaylistRelative = ltrim($folderPath . '/' . $currentPlaylist, '/');
+
+// Get MP3 files from current playlist
+$mp3Files = getMp3Files($currentPlaylistPath, $currentPlaylistRelative);
+
+// Format file size
+function formatFileSize($bytes) {
+    if ($bytes >= 1048576) {
+        return number_format($bytes / 1048576, 2) . ' MB';
+    } elseif ($bytes >= 1024) {
+        return number_format($bytes / 1024, 2) . ' KB';
+    }
+    return $bytes . ' bytes';
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Player - <?php echo htmlspecialchars($currentPlaylist ?: 'Select Playlist'); ?></title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            display: flex;
+            min-height: 500px;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            background: #343a40;
+            color: white;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        .playlist-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            border-bottom: 1px solid #dee2e6;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+        }
+
+        .playlist-item:hover {
+            background: #e9ecef;
+        }
+
+        .playlist-item.active {
+            background: #667eea;
+            color: white;
+            font-weight: bold;
+        }
+
+        .playlist-item::before {
+            content: '📁';
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 30px;
+        }
+
+        .player-container {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .now-playing {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .track-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        audio {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .playlist-section {
+            margin-top: 20px;
+        }
+
+        .playlist-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #343a40;
+        }
+
+        .track-list {
+            list-style: none;
+        }
+
+        .track-item {
+            background: #f8f9fa;
+            margin-bottom: 10px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .track-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .track-item.playing {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .track-number {
+            font-weight: bold;
+            margin-right: 15px;
+            opacity: 0.7;
+            min-width: 30px;
+        }
+
+        .track-name {
+            flex: 1;
+        }
+
+        .track-size {
+            opacity: 0.6;
+            font-size: 0.9em;
+            margin-left: 15px;
+        }
+
+        .track-item.playing .track-number,
+        .track-item.playing .track-size {
+            opacity: 1;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎵 Audio Player</h1>
+            <p>Play your favorite music from playlists</p>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <div class="sidebar-header">Playlists</div>
+                <?php if (empty($playlists)): ?>
+                    <div style="padding: 20px; text-align: center; color: #6c757d;">
+                        No playlists found
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($playlists as $playlist): ?>
+                        <div class="playlist-item <?php echo $playlist['name'] === $currentPlaylist ? 'active' : ''; ?>"
+                             onclick="window.location.href='?folder=<?php echo urlencode($folderPath); ?>&playlist=<?php echo urlencode($playlist['name']); ?>'">
+                            <?php echo htmlspecialchars($playlist['name']); ?>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <div class="main-content">
+                <?php if (empty($mp3Files)): ?>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎧</div>
+                        <h3>No audio files found</h3>
+                        <p>Please add some MP3 files to the selected playlist folder</p>
+                    </div>
+                <?php else: ?>
+                    <div class="player-container">
+                        <div class="now-playing">Now Playing</div>
+                        <div class="track-title" id="currentTrackTitle"><?php echo htmlspecialchars($mp3Files[0]['name']); ?></div>
+                        <audio id="audioPlayer" controls autoplay>
+                            <source src="<?php echo htmlspecialchars($mp3Files[0]['path']); ?>" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                        <div class="player-info">
+                            <span id="trackInfo">Track 1 of <?php echo count($mp3Files); ?></span>
+                            <span id="trackSize"><?php echo formatFileSize($mp3Files[0]['size']); ?></span>
+                        </div>
+                    </div>
+
+                    <div class="playlist-section">
+                        <div class="playlist-title">
+                            📁 <?php echo htmlspecialchars($currentPlaylist); ?>
+                            <span style="font-size: 0.7em; font-weight: normal; opacity: 0.7;">
+                                (<?php echo count($mp3Files); ?> tracks)
+                            </span>
+                        </div>
+                        <ul class="track-list">
+                            <?php foreach ($mp3Files as $index => $file): ?>
+                                <li class="track-item <?php echo $index === 0 ? 'playing' : ''; ?>"
+                                    data-index="<?php echo $index; ?>"
+                                    data-src="<?php echo htmlspecialchars($file['path']); ?>"
+                                    data-title="<?php echo htmlspecialchars($file['name']); ?>"
+                                    data-size="<?php echo formatFileSize($file['size']); ?>"
+                                    onclick="playTrack(<?php echo $index; ?>)">
+                                    <span class="track-number"><?php echo $index + 1; ?></span>
+                                    <span class="track-name"><?php echo htmlspecialchars($file['name']); ?></span>
+                                    <span class="track-size"><?php echo formatFileSize($file['size']); ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const audioPlayer = document.getElementById('audioPlayer');
+        const trackTitle = document.getElementById('currentTrackTitle');
+        const trackInfo = document.getElementById('trackInfo');
+        const trackSize = document.getElementById('trackSize');
+        const trackItems = document.querySelectorAll('.track-item');
+
+        let currentTrackIndex = 0;
+        const totalTracks = trackItems.length;
+
+        // Play specific track
+        function playTrack(index) {
+            if (index < 0 || index >= totalTracks) return;
+
+            currentTrackIndex = index;
+            const track = trackItems[index];
+
+            // Update player
+            audioPlayer.src = track.dataset.src;
+            audioPlayer.play();
+
+            // Update UI
+            trackTitle.textContent = track.dataset.title;
+            trackInfo.textContent = `Track ${index + 1} of ${totalTracks}`;
+            trackSize.textContent = track.dataset.size;
+
+            // Update track list
+            trackItems.forEach(item => item.classList.remove('playing'));
+            track.classList.add('playing');
+        }
+
+        // Auto play next track when current ends
+        audioPlayer.addEventListener('ended', function() {
+            if (currentTrackIndex < totalTracks - 1) {
+                playTrack(currentTrackIndex + 1);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') {
+                // Next track
+                if (currentTrackIndex < totalTracks - 1) {
+                    playTrack(currentTrackIndex + 1);
+                }
+            } else if (e.key === 'ArrowLeft') {
+                // Previous track
+                if (currentTrackIndex > 0) {
+                    playTrack(currentTrackIndex - 1);
+                }
+            } else if (e.key === ' ') {
+                // Play/Pause
+                e.preventDefault();
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                } else {
+                    audioPlayer.pause();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

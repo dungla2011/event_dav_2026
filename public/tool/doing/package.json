@@ -1,0 +1,33 @@
+{
+  "name": "family-tree-testing-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive testing suite for Vietnamese family tree app",
+  "main": "run-all-tests.js",
+  "scripts": {
+    "test": "node run-all-tests.js",
+    "test:unit": "node 001-test-data-structure.js",
+    "test:config": "node 002-test-config-system.js",
+    "test:functions": "node 003-test-core-functions.js",
+    "test:dimensions": "node 004-test-dimension-changes.js",
+    "test:rotation": "node 005-test-text-rotation.js",
+    "test:levels": "node 006-test-per-level-features.js",
+    "test:ui": "node 007-test-ui-interactions.js",
+    "test:export": "node 008-test-svg-export.js",
+    "test:performance": "node 009-test-performance.js",
+    "test:integration": "node 010-test-full-integration.js"
+  },
+  "keywords": [
+    "family-tree",
+    "testing",
+    "d3js",
+    "vietnamese"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "colors": "^1.4.0",
+    "cypress": "^14.5.4",
+    "jsdom": "^22.1.0",
+    "puppeteer": "^24.17.0"
+  }
+}

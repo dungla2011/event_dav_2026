@@ -1,0 +1,35 @@
+- Xuất svg sao để draw.io đọc được
+- Thử edit với CorelDraw
+- Tóm tắt lại mọi tính năng để tester
+
+*** Xuất DrawIO chưa ổn chỗ Path cha con
+- Thêm option Chọn font, cỡ, chữ màu, chữ Global và cho từng hàng: Tên, ngày sinh, Title
+- Chọn màu nền, khung viền cho cả svg
+- Chọn Màu nền, viền cho từng node của hàng
+- Hiển thị Ảnh
+- Undo - Redo
+
+
+
+Hiện tại các đường đến các con có lúc bị cắt nhau, hãy điều chỉnh thuật toán ví dụ như sau:
+
+- Ta sẽ xét 1 dãy node từ trái qua phải, ví dụ 2 node liều nhau tên là N1, N2
+và các con của N1 ví dụ là đánh số là N11, N12, N13...., con cuối là N1.End, lần lượt tiếp theo đến các con N2 là N21, N22, N23...N2.End
+- Đường đến con từ Cha là 1 đường dọc từ cha -> Đường ngang -> Con.
+- Toạ độ X của phần tử N1 viết là X-N11
+
+- Quy định X, Y là toạ độ như trên màn hình, X từ trái qua phải và Y từ trên xuống dưới.
+
++ Logic các trường hợp bình thường sẽ không làm đường parent bị cắt nhau là:
+Xét 2 node gần nhau là N1 và N2, N1 đứng trước, thì xét Con đầu của N2 (X-N21) so với X-N1 và Con cuối của N1 (X-N1.End) với X-N2:
+thì có 2 trường hợp sẽ không làm cắt nhau: X-N1 < X-N21, X-N2 > X-N1.End
++ Các trường hợp còn lại sẽ bị cắt nhau nếu đường cha con có Y không phù hợp.
+
+- Ví dụ: Xét X-N1 và X-N21 (N21 là con đầu của N2)
++ Nếu X-N1 < X-N21, là N1 đứng trước con đầu của N2 theo toạ độ X
+Như vậy đường từ N1 đến N11, N12... không bao giờ bị cắt vào đường ChaCon của N2
++ Nhưng Nếu X-N1 >= X-N21, là N1 đứng sau N21 theo X, vậy đường N1 đến các con sẽ bị cắt đường N2 đến các con Nếu Đường ngang của N1 đến con không nằm trên đường ngang của N2 đến con. Vậy để không bị cắt thì đường Ngang N1 đến con phải nằm trên của N2 đến con.
+(Chú ý nằm trên hay dưới là nhìn mắt trên màn hình vào, và hình như nó ngược với Y trong Code?)
+
+
+- Từ Logic trên, hãy làm sao đường ngang hợp lý, để ko bao giờ bị cắt, chỉ là Y của đường ngang cần hợp lý thôi.
