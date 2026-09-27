@@ -99,7 +99,7 @@ class EventInfo extends ModelGlxBase {
 
     function getLocation($lang = 'vi')
     {
-        if($lang = 'en')
+        if($lang == 'en')
             return strip_tags($this->location_en ?: $this->location);
         return strip_tags($this->location);
     }
