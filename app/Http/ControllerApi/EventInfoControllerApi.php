@@ -215,7 +215,10 @@ class EventInfoControllerApi extends BaseApiController
         $mmReplace = [
             EventInfo::$DEF_TENKHACH[0] => "$userTitle $last_name $first_name",
             EventInfo::$DEF_USER_NAME[0]=> "$userTitle $last_name $first_name",
-            EventInfo::$DEF_EVENT_NAME[0]=> $ev->name,
+            EventInfo::$DEF_EVENT_NAME[0]=> $ev->getName($lang),
+            EventInfo::$DEF_START_TIME[0] => $ev->getTimeStartVn(),
+            EventInfo::$DEF_END_TIME[0] => $ev->getTimeEndVn(),
+            EventInfo::$DEF_ADDRESS_LOCATION[0] => $ev->getLocation($lang),
             EventInfo::$DEF_REG_LINK_OLD[0] => $linkRegister,
             EventInfo::$DEF_CONFIRM_EMAIL[0] => $linkRegister,
             "\n" => "<br>",
@@ -827,7 +830,10 @@ class EventInfoControllerApi extends BaseApiController
         $mmReplace = [
             EventInfo::$DEF_TENKHACH[0] => $evu->getFullnameAndTitle(),
             EventInfo::$DEF_USER_NAME[0]=> $evu->getFullname(),
-            EventInfo::$DEF_EVENT_NAME[0]=> $ev->name,
+            EventInfo::$DEF_EVENT_NAME[0]=> $ev->getName($lang),
+            EventInfo::$DEF_START_TIME[0] => $ev->getTimeStartVn(),
+            EventInfo::$DEF_END_TIME[0] => $ev->getTimeEndVn(),
+            EventInfo::$DEF_ADDRESS_LOCATION[0] => $ev->getLocation($lang),
             EventInfo::$DEF_QRCODE[0] => "<img src='$linkQr' >",
             "\n" => "<br>",
         ];
@@ -1720,7 +1726,10 @@ class EventInfoControllerApi extends BaseApiController
 
                     //Neu ko co content EN thi quay lai content VI
                     $ct = trim($ev->$select_content);
+                    //Tiêu đề mail sẽ đi theo ngôn ngữ của nội dung thực sự được dùng
+                    $titleFieldUsed = str_replace('content', 'mail_title', $select_content);
                     if (!$ct) {
+                        $titleFieldUsed = str_replace('content', 'mail_title', $select_content0);
                         $ct = trim($ev->$select_content0);
                         if (!$ct) {
                             ol1($eventSendAction, "*** Error: empty content $select_content / $select_content0, ev = $eventId", $ignoreEcho);
@@ -1780,6 +1789,26 @@ class EventInfoControllerApi extends BaseApiController
 
                     $ct = str_replace(EventInfo::$DEF_USER_ID[0], $evUser->id, $ct);
 
+                    //Placeholder dùng cho TIÊU ĐỀ mail (chỉ giá trị dạng text, không HTML)
+                    $mmReplaceTitle = [
+                        EventInfo::$DEF_EVENT_NAME[0] => $ev->getName($evUser->language),
+                        EventInfo::$DEF_START_TIME[0] => $ev->getTimeStartVn(),
+                        EventInfo::$DEF_END_TIME[0] => $ev->getTimeEndVn(),
+                        EventInfo::$DEF_ADDRESS_LOCATION[0] => $ev->getLocation($evUser->language),
+                        EventInfo::$DEF_TENKHACH[0] => $nameFull,
+                        EventInfo::$DEF_USER_NAME[0] => $nameFull,
+                        EventInfo::$DEF_USER_EMAIL[0] => $evUser->email,
+                        EventInfo::$DEF_USER_ID[0] => $evUser->id,
+                        EventInfo::$DEF_EXT1[0] => $eventAndUser->extra_info1,
+                        EventInfo::$DEF_EXT2[0] => $eventAndUser->extra_info2,
+                        EventInfo::$DEF_EXT3[0] => $eventAndUser->extra_info3,
+                        EventInfo::$DEF_EXT4[0] => $eventAndUser->extra_info4,
+                        EventInfo::$DEF_EXT5[0] => $eventAndUser->extra_info5,
+                        EventInfo::$DEF_LINKTHAMDU[0] => $linkXacNhan,
+                        EventInfo::$DEF_QRCODE[0] => '',
+                        EventInfo::$DEF_CMD_UPDATE_USER_INFO[0] => '',
+                    ];
+
                     if($evP = EventUserPayment::where('user_event_id', $evUser->id)->where('event_id', $ev->id)->first()){
 //                        $evP->bank_name;
 //                        $evP->bank_account;
@@ -1791,6 +1820,8 @@ class EventInfoControllerApi extends BaseApiController
                             $tmpMoneyStr = cstring2::toTienVietNamString3($evP->payed - $evP->khau_tru);
                             $ct = str_replace(EventInfo::$DEF_CHI_PHI_THANH_TOAN[0], "$tmpMoney  ($tmpMoneyStr) ", $ct);
                             $ct = str_replace(EventInfo::$DEF_TAI_KHOAN_THANH_TOAN[0], " $fullname, STK: $evP->bank_account ($evP->bank_name) ", $ct);
+                            $mmReplaceTitle[EventInfo::$DEF_CHI_PHI_THANH_TOAN[0]] = trim("$tmpMoney ($tmpMoneyStr)");
+                            $mmReplaceTitle[EventInfo::$DEF_TAI_KHOAN_THANH_TOAN[0]] = trim("$fullname, STK: $evP->bank_account ($evP->bank_name)");
                         }
                     }
 
@@ -1925,7 +1956,6 @@ class EventInfoControllerApi extends BaseApiController
                             continue;
                         }
 
-                        $selectTitle = str_replace('content', 'mail_title', $select_content);
                         $ct = preg_replace('#(<img\\b[^>]*?\\bsrc\\s*=\\s*["\'])/(?!/)#i', '${1}https://' . $domain . '/', $ct);
 
 //                    $linkQR = "https://$domain/user-confirm-event?data=$eventIdEnc|".eth1b($evUser->id);
@@ -1946,9 +1976,11 @@ class EventInfoControllerApi extends BaseApiController
 
                         $ct = str_replace(EventInfo::$DEF_QRCODE[0], $strImg, $ct);
 
-                        $titleMail = $ev->$selectTitle;
-                        $titleMail = str_replace(EventInfo::$DEF_EVENT_NAME[0], $ev->getName(), $titleMail);
-                        $titleMail = str_replace(EventInfo::$DEF_USER_ID[0], $evUser->id, $titleMail);
+                        //Tiêu đề theo ngôn ngữ nội dung đã dùng; tiêu đề EN trống thì quay về tiêu đề VI
+                        $titleMail = trim((string)$ev->$titleFieldUsed);
+                        if (!$titleMail)
+                            $titleMail = trim((string)$ev->{str_replace('content', 'mail_title', $select_content0)});
+                        $titleMail = str_replace(array_keys($mmReplaceTitle), array_values($mmReplaceTitle), $titleMail);
 
 //                    $ct .= $strImg;
                         $evsL->content = $ct;
