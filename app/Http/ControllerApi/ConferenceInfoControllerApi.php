@@ -80,7 +80,14 @@ class ConferenceInfoControllerApi extends BaseApiController
 
     function listConf()
     {
-        $mm = ConferenceInfo::select(['name', 'cat', 'id'])->where("status", 1)->orderBy('orders', 'asc')->get();
+        $mm = ConferenceInfo::select(['name', 'cat', 'id', 'sub_title', 'images', 'created_at'])->where("status", 1)->orderBy('orders', 'asc')->get();
+        // Thêm image_url (ảnh đầu tiên) để trang danh sách bên nghiencuubiendong.vn hiển thị thumbnail
+        $domain = 'https://events.dav.edu.vn';
+        foreach ($mm as $item) {
+            $item->image_url = null;
+            if ($item->images && $file = FileUpload::find(explode(",", $item->images)[0]))
+                $item->image_url = $domain . $file->getCloudLinkImage();
+        }
         $meta = ConferenceInfo::getMetaObj();
         $mCat = $meta->_cat();
 
