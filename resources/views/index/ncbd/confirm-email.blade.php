@@ -102,8 +102,8 @@
                 if ($lang == 'vi') {
                     $txt = "\n Xin chào <b>  $eu->title $eu->last_name $eu->first_name </b>".
                          "<br/>\nMời quý vị Xác nhận tham dự Sự kiện:  ".
-                         "<br/>\n <b> $ev->name </b>".
-                         "<p>\n <i style='font-size: small'> Thời gian: $ev->time_start | $ev->time_end</i> </p>".
+                         "<br/>\n <b> ".$ev->getName($lang)." </b>".
+                         "<p>\n <i style='font-size: small'> Thời gian: ".$ev->getTimeStartVn()." | ".$ev->getTimeEndVn()."</i> </p>".
                          "<p>\n <i> Xin cảm ơn Quý vị! </i>  </p>";
 
                     if ($ev->web_text_confirm_join_event_vi) {
@@ -116,8 +116,8 @@
                 else {
                     $txt = "\nGreetings <b> $eu->title $eu->last_name $eu->first_name </b>".
                          "<br/>\nPlease confirm participation to the event:  ".
-                         "<br/>\n <b> $ev->name </b>".
-                         "<p>\n <i style='font-size: small'> Time: $ev->time_start | $ev->time_end</i> </p>".
+                         "<br/>\n <b> ".$ev->getName($lang)." </b>".
+                         "<p>\n <i style='font-size: small'> Time: ".$ev->getTimeStartVn()." | ".$ev->getTimeEndVn()."</i> </p>".
                          "<p>\n <i> Thank you! </i>  </p>";
 
                     if ($ev->web_text_confirm_join_event_en) {
