@@ -501,4 +501,4 @@ if __name__ == '__main__':
     port = int(os.getenv('FLASK_PORT', 50000))
 
     print(f"🚀 Starting Face API server on port {port}...")
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
