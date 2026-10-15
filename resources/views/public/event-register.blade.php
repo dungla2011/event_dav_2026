@@ -361,6 +361,15 @@ if($id ?? ''){
                     $allowedBanks = config('banks');
 
                     $bank_name_text = trim($bank_name_text);
+
+                    //Sự kiện bật nhập ngân hàng thì ngân hàng + số tài khoản là bắt buộc
+                    if ($ev->enable_reg_bank && (!$bank_name_text || !$bank_acc_number)) {
+                        bl(App::getLocale() == 'vi'
+                            ? 'Vui lòng chọn ngân hàng và nhập số tài khoản.'
+                            : 'Please select your bank and enter your bank account number.');
+                        goto _END;
+                    }
+
                     if($bank_name_text)
                     if (!array_key_exists($bank_name_text, $allowedBanks)) {
                         bl("Ngân hàng không tồn tại? Not found bank?" . $bank_name_text);
@@ -1019,7 +1028,10 @@ reg_mail_02_en
                     const selectedValue = event.target.value;
 
                     if (selectedValue === '') {
-                        bankInfo.style.display = 'none';
+                        // Xoá lựa chọn: phải xoá cả giá trị gửi đi, nếu không sẽ gửi ngân hàng cũ
+                        document.getElementById('bank_name_text').value = '';
+                        document.getElementById('bank_name_text').setAttribute('value', '');
+                        if (bankInfo) bankInfo.style.display = 'none';
                         return;
                     }
 
@@ -1044,6 +1056,17 @@ reg_mail_02_en
 
                     // document.getElementById('category').textContent = categoryMap[info[3]] || info[3];
                     // bankInfo.style.display = 'block';
+                });
+
+                // 'required' không có tác dụng với input hidden, và select gốc bị Choices.js ẩn
+                // -> tự kiểm tra khi bấm Đăng ký
+                const formReg = document.getElementById('formUpload');
+                if (formReg) formReg.addEventListener('submit', function (event) {
+                    if (!document.getElementById('bank_name_text').value) {
+                        event.preventDefault();
+                        alert(@json(app()->getLocale() == 'vi' ? 'Vui lòng chọn ngân hàng.' : 'Please select your bank.'));
+                        choices.showDropdown();
+                    }
                 });
             }
 
