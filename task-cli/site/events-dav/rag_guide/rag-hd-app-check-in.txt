@@ -1,0 +1,38 @@
+# Check-in khách bằng app DAV Event Check-in
+
+# Chọn sự kiện
+1. Trên màn quét, bấm nút **Sự kiện** (hoặc vào từ **Cài đặt** → **Lưu & chọn sự kiện**).
+2. Danh sách mặc định là **30 sự kiện gần nhất** (sự kiện có thời gian gần hôm nay nhất, của toàn hệ thống). Sự kiện đã qua có nhãn "Đã kết thúc".
+3. Không thấy sự kiện cần tìm thì gõ tên (hoặc mã số sự kiện) vào ô **Tên sự kiện** rồi bấm **Tìm** — tìm trên tất cả sự kiện.
+4. Chạm vào sự kiện để chọn, app quay về màn quét. Nút **Trở lại** ở cuối màn để về mà không đổi.
+Chưa chọn sự kiện thì màn quét nhắc "Hãy chọn sự kiện" và không gửi gì lên máy chủ.
+
+# Quét
+- Mở app là vào thẳng màn quét. Camera trước được dùng mặc định; nút **Đổi camera** để chuyển camera sau.
+- Khách đưa khuôn mặt vào khung hình, hoặc giơ mã QR trên thư mời (email/tin nhắn). App nhận cả hai cùng lúc.
+- Nhận ra khách thì khung bên phải (máy nằm ngang) hoặc phía dưới (máy dựng dọc) hiện ảnh hồ sơ, họ tên, đơn vị và thông tin riêng của khách tại sự kiện (ví dụ số bàn, nhóm).
+- Màu thẻ kết quả:
+  - Xanh lá "Check-in thành công": khách vừa được ghi check-in.
+  - Vàng "Đã check-in lúc HH:mm": khách đã check-in trước đó; giờ check-in đầu tiên được giữ nguyên, không ghi đè.
+  - Đỏ: không check-in được, kèm lý do.
+- Ký xác nhận: khi cần ký, sau khi nhận ra khách app hiện ô **Ký vào đây**; khách ký rồi bấm **Xác nhận** mới ghi check-in. **Ký lại** để xoá nét ký, **Huỷ** để bỏ qua khách này.
+- Ai phải ký:
+  - Sự kiện bật **Yêu cầu ký cho Sự kiện này**: mọi khách chưa ký ở sự kiện này.
+  - Sự kiện bật **Yêu cầu ký nếu chưa có Chữ ký**: chỉ khách chưa có chữ ký gốc trong hồ sơ; khách đã có chữ ký gốc check-in luôn, không thấy ô ký.
+  - Người trực bàn tự bật **Vùng ký** trong Cài đặt app: mọi khách chưa check-in đều phải ký.
+  - Khách đã check-in trước đó nhưng sự kiện bắt ký mà khách chưa ký: app mời khách ký bổ sung.
+
+# Các thông báo lỗi thường gặp
+- "Không nhận diện được": khuôn mặt không khớp ai trong danh sách khách. Thường do khách chưa có ảnh trong hồ sơ, ảnh hồ sơ mờ/nghiêng, hoặc thiếu sáng. Cách xử lý: cho khách quét mã QR thư mời, hoặc bổ sung ảnh chân dung rõ mặt vào hồ sơ khách ở trang Admin (**Quản lý Khách**).
+- "Khách chưa đăng ký sự kiện này": nhận ra người này nhưng họ chưa có trong danh sách khách của sự kiện đang chọn. Kiểm tra đã chọn đúng sự kiện chưa, hoặc thêm khách vào sự kiện ở trang Admin.
+- "Mã QR không hợp lệ": QR không phải thư mời của hệ thống, hoặc là thư mời của sự kiện khác. Thư mời của sự kiện cha dùng được cho các sự kiện con của nó.
+- "Chưa đến giờ mở check-in" / "Sự kiện chưa mở check-in": chưa tới **Thời gian bắt đầu check in** (hoặc giờ **Bắt đầu**) của sự kiện. Sửa giờ trong sự kiện ở trang Admin nếu cần mở sớm.
+- "Sự kiện đã kết thúc — không nhận check-in": đã quá giờ **Kết thúc** của sự kiện. Muốn check-in tiếp thì sửa giờ Kết thúc ở trang Admin.
+- "Sự kiện bắt buộc ký — khách cần ký rồi mới check-in".
+- "Mất kết nối máy chủ": máy mất mạng; kiểm tra Wi-Fi/4G.
+- "Sự kiện không còn mở cho thiết bị này. Hãy chọn lại.": chọn lại sự kiện.
+
+# Mẹo đặt máy
+- Đặt máy ngang tầm mặt khách, tránh ngược sáng (cửa sổ, đèn phía sau lưng khách).
+- Nút **Nhật ký** trên màn quét mở nhật ký kỹ thuật, dùng khi cần báo lỗi cho quản trị.
+- Ảnh của khách hiện trong app được tải từ hồ sơ khách trên máy chủ, giống ảnh trên trang Admin.

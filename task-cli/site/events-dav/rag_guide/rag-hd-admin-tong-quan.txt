@@ -1,0 +1,32 @@
+# Tổng quan trang quản trị events.dav.edu.vn
+
+Đăng nhập tại https://events.dav.edu.vn/admin. Menu bên trái gồm các mục chính:
+- **Quản lý Sự kiện** (/admin/event-info): tạo, sửa sự kiện; đặt thời gian, địa điểm, nội dung email/SMS mời, yêu cầu ký.
+- **Quản lý Khách** (/admin/event-user-info): hồ sơ khách (họ tên, chức danh, đơn vị, email, điện thoại, ảnh chân dung, chữ ký gốc).
+- **Quản lý Nhóm khách** (/admin/event-user-group): nhóm khách để quản lý, gửi tin theo nhóm.
+- **Quản lý Phòng Ban** (/admin/department).
+- **Cài đặt Sự kiện** (/admin/event-setting).
+- **Thanh toán SK** (/admin/event-user-payment).
+- **EventSendEmailLog**, **EventSendSmsLog**: nhật ký email/SMS đã gửi.
+- **Mã thiết bị App** (/admin/app-device): cấp mã cho máy chạy app check-in.
+Người phụ trách sự kiện (không phải admin) dùng khu vực thành viên /member, có các mục **Quản lý Sự kiện**, **Quản lý Khách**, **Sự kiện và Khách**, **Đăng ký sự kiện**, **Nhóm Khách**, **Quản lý Gửi tin**, **Tổng hợp Sự kiện**.
+
+# Các trường của sự kiện liên quan tới check-in
+- **Tên sự kiện**, **Địa điểm**, **Sự kiện Cha**: sự kiện con có thể nằm dưới một sự kiện cha; thư mời QR của sự kiện cha dùng được để check-in ở sự kiện con.
+- **Bắt đầu**, **Kết thúc**: thời gian diễn ra. Quá giờ Kết thúc thì app không nhận check-in nữa.
+- **Thời gian bắt đầu check in**: giờ bắt đầu cho phép check-in. Quy tắc: nếu cả giờ này và giờ Bắt đầu đều để trống thì cho check-in bất cứ lúc nào; nếu đặt cả hai thì lấy giờ sớm hơn.
+- Hai tuỳ chọn ký (quyết định ai phải ký trên app check-in):
+  - **Yêu cầu ký cho Sự kiện này**: mọi khách chưa ký ở sự kiện này đều phải ký trên app mới check-in được, kể cả khách đã có chữ ký gốc trong hồ sơ.
+  - **Yêu cầu ký nếu chưa có Chữ ký (Sau khi scan QR)**: chỉ khách CHƯA có chữ ký gốc trong hồ sơ mới phải ký. Khách đã có chữ ký gốc thì check-in luôn, không thấy ô ký.
+  - Bật cả hai: khách thiếu một trong hai loại chữ ký đều phải ký; thực tế là mọi khách chưa ký ở sự kiện này (vì tuỳ chọn "cho Sự kiện này" đã bao gồm).
+  - Không bật cái nào: không ai phải ký, trừ khi người trực bàn tự bật **Vùng ký** trong Cài đặt của app.
+  - Chữ ký gốc: nếu khách chưa từng ký lần nào, chữ ký đầu tiên khách ký trên app được lưu làm chữ ký gốc trong hồ sơ khách để đối chiếu các lần ký về sau. Chữ ký ở mỗi sự kiện được lưu riêng trong danh sách khách của sự kiện đó.
+- **Ảnh nền App QR**, **Độ mờ ảnh nền App QR**.
+- **Cho phép Đăng ký Public**, **Số thành viên tối đa**, **Người dùng Phải có Ảnh để Đăng ký**, **Mở Thông tin Bank khi Đăng ký**: các tuỳ chọn cho trang đăng ký công khai.
+- Nội dung email mời (Mail1/Mail2/Mail3, tiếng Việt và English) và SMS tương ứng.
+
+# Ảnh khách và nhận diện khuôn mặt
+- App nhận diện khuôn mặt dựa trên ảnh chân dung trong hồ sơ khách (**Quản lý Khách**). Khách không có ảnh thì chỉ check-in bằng mã QR được.
+- Ảnh nên chụp thẳng mặt, rõ nét, đủ sáng, không đeo kính râm/khẩu trang. Ảnh mới thêm được hệ thống nhận diện cập nhật tự động sau ít giây.
+- Khách phải nằm trong danh sách khách của đúng sự kiện thì app mới ghi check-in.
+- Thời điểm check-in và chữ ký (nếu có) được ghi vào danh sách khách của sự kiện.

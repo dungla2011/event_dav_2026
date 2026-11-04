@@ -1,0 +1,17 @@
+# Cấp mã thiết bị App (trang Admin)
+
+Mỗi máy tính bảng/điện thoại chạy app DAV Event Check-in cần một mã thiết bị (token) để kết nối máy chủ. Mã do quản trị cấp ở trang Admin; chỉ tài khoản quản trị (admin) mới vào được trang này.
+
+# Cấp mã mới
+1. Đăng nhập https://events.dav.edu.vn/admin.
+2. Ở menu bên trái, chọn **Mã thiết bị App** (đường dẫn /admin/app-device).
+3. Nhập **tên thiết bị** cho dễ nhận biết, ví dụ "Kiosk sảnh A" hoặc "iPad bàn lễ tân 2", rồi bấm **Cấp mã**.
+4. Trang hiện mã QR và chuỗi mã. Trên máy cần cài: vào **Cài đặt** của app → **Quét QR** và quét mã QR này. Hoặc bấm **Chép mã** trên trang rồi dán vào app.
+
+Lưu ý: mã chỉ hiện MỘT lần ngay sau khi cấp, hệ thống không lưu bản gốc để xem lại. Lỡ đóng trang trước khi nhập vào máy thì cấp mã mới.
+
+# Thu hồi / bật lại
+- Bảng bên dưới liệt kê các thiết bị: trạng thái, lần cuối hoạt động (kèm địa chỉ IP), ngày tạo.
+- Bấm **Thu hồi** để chặn một máy (ví dụ máy bị mất, hoặc cho mượn xong). Máy đó sẽ báo "Mã thiết bị không hợp lệ hoặc đã bị thu hồi".
+- Bấm **Bật lại** để cho máy đã thu hồi dùng tiếp với mã cũ.
+- Một mã chỉ nên dùng cho một máy, để thu hồi riêng từng máy được.

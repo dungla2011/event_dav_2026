@@ -133,6 +133,7 @@ if(\App\Models\SiteMng::isAdminSidebarCollapse())
 
 @yield("js")
 @yield("js1")
+@include("parts.guide-chat")
 
 
 <p id="waitting_icon" style=" position:fixed;left: 50%;z-index: 1000000; display: none; top: 200px">

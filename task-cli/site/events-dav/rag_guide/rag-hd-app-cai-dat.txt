@@ -1,0 +1,28 @@
+# Cài đặt app DAV Event Check-in
+
+App "DAV Event Check-in" dùng để check-in khách tại sự kiện bằng khuôn mặt hoặc mã QR thư mời. Thường chạy trên máy tính bảng đặt ở bàn đón khách, cũng chạy được trên điện thoại.
+
+# Tải app
+- Android: hiện phát hành dạng thử nghiệm nội bộ trên Google Play. Người cài phải có tài khoản Google nằm trong danh sách tester, rồi mở link mời https://play.google.com/apps/internaltest/4700545145413354864 để tham gia và cài. Muốn được thêm vào danh sách tester thì liên hệ quản trị hệ thống.
+- iPhone/iPad: cài app TestFlight của Apple trước, rồi mở link https://testflight.apple.com/join/hbeXsRXB trên máy để cài. Nếu TestFlight báo "This beta isn't accepting any new testers right now" thì bản thử đang chờ Apple duyệt, hãy thử lại sau.
+- App tự cập nhật bản sửa lỗi nhỏ qua mạng. Trong **Cài đặt** có nút **Kiểm tra bản mới**; khi có bản mới sẽ hiện thông báo kèm nút **Cập nhật**.
+
+# Kết nối máy chủ lần đầu
+Mỗi máy cần một **Mã thiết bị (token)** do quản trị cấp ở trang Admin (xem hướng dẫn "Cấp mã thiết bị App").
+1. Mở app, vào **Cài đặt** (màn **Cài đặt thiết bị**).
+2. Ô **Địa chỉ máy chủ (Base URL)** để mặc định https://events.dav.edu.vn/api/app/v1, không cần sửa.
+3. Ở ô **Mã thiết bị (token)**: bấm **Quét QR** rồi quét mã QR hiện trên trang Admin lúc cấp mã (cách nhanh nhất), hoặc chép mã rồi bấm **Dán**.
+4. Bấm **Kiểm tra kết nối**. Thành công sẽ hiện "Đã kết nối: <tên thiết bị> — <đơn vị>".
+5. Bấm **Lưu & chọn sự kiện**.
+
+Nếu app báo "Mã thiết bị không hợp lệ hoặc đã bị thu hồi" thì mã đã bị thu hồi ở trang Admin hoặc nhập sai; xin quản trị cấp mã mới hoặc bật lại mã cũ.
+Nếu báo "Kết nối thất bại" thì kiểm tra máy có mạng Internet (Wi-Fi/4G) không.
+
+# Các tuỳ chọn trong Cài đặt
+- **Nhận diện khuôn mặt**: bật/tắt check-in bằng khuôn mặt. Tắt thì chỉ nhận mã QR.
+- **Thời gian chờ sau khi nhận diện (giây)**: sau mỗi lần nhận ra một khách, app chờ bấy nhiêu giây rồi mới nhận khách tiếp theo, tránh check-in trùng.
+- **Vùng ký xác nhận**: bật thì sau khi nhận diện, khách phải ký vào màn hình và bấm **Xác nhận** mới ghi check-in. Nếu sự kiện được đặt bắt buộc ký ở trang Admin thì không tắt được (app báo "Sự kiện này bắt buộc khách ký xác nhận").
+- **Tỷ lệ camera : khung thông tin/ký**: chỉnh độ rộng phần camera so với phần thông tin/vùng ký, riêng cho máy dựng dọc và máy nằm ngang.
+- **Độ đục của thẻ kết quả**: thẻ kết quả hiện đè trên hình camera; giảm để trong suốt hơn.
+- **Phát âm cảnh báo khi khuôn mặt không khớp**.
+- **Chế độ giả lập**: không gọi máy chủ, trả kết quả giả để tập dùng hoặc thử giao diện. Nhớ tắt trước khi dùng thật (khi bật, màn quét có nhãn "GIẢ LẬP").
