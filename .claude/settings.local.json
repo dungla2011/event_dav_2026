@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:v2up.4share.vn)"
+      "WebFetch(domain:v2up.4share.vn)",
+      "ssh dav2026"
     ]
   }
 }

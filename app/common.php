@@ -691,12 +691,20 @@ function isIPDebug()
 
 function isDebugIp()
 {
-    $ctx = stream_context_create(['http' => ['timeout' => 1]]);
+    // Hàm được gọi hàng nghìn lần/request (trong vòng lặp row/field), mỗi lần 2 DNS lookup ~2-3ms
+    // => cache kết quả theo IP trong 1 request
+    static $cache = [];
 
     $ipx = 'none_ip';
     if (isset($_SERVER) && isset($_SERVER['REMOTE_ADDR'])) {
         $ipx = $_SERVER['REMOTE_ADDR'];
     }
+
+    return $cache[$ipx] ??= isDebugIpNoCache_($ipx);
+}
+
+function isDebugIpNoCache_($ipx)
+{
     if($ipx == '127.0.0.1'){
         return $ipx;
     }

@@ -148,7 +148,7 @@ DB_RM_PW1=JwkDm_odM4Jw111
 DB_RM_HOST2=127.0.0.1
 DB_RM_NAME2=glx_event
 DB_RM_USER2=admin
-DB_RM_PW2=Cloud@222
+DB_RM_PW2=<xem .env tren server>
 
 # Remote 3,4,5 tương tự...
 ```
