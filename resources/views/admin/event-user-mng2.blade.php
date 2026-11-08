@@ -31,6 +31,18 @@
     #evTargets .ev-id { flex: 0 0 auto; min-width: 42px; color: #6c757d; font-variant-numeric: tabular-nums; }
     #evTargets .ev-name { flex: 1 1 auto; line-height: 1.35; }
     #evTargets.full .ev-item:not(.on) { opacity: .45; }
+    #mdlUser .sec-title { font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: .03em;
+        color: #0d6efd; border-bottom: 1px solid #e9ecef; padding-bottom: 3px; margin: 14px 0 8px; }
+    #mdlUser .sec-title:first-of-type { margin-top: 0; }
+    #mdlUser label.form-label { font-weight: normal; color: #495057; }
+    #mdlUser .pick-list { max-height: 150px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; }
+    #mdlUser .pick-list label { display: flex; align-items: center; gap: 8px; margin: 0; padding: 4px 10px;
+        font-weight: normal; font-size: 13px; cursor: pointer; border-bottom: 1px solid #f1f3f5; }
+    #mdlUser .pick-list label:hover { background: #f8f9fa; }
+    #mdlUser .pick-list label.on { background: #e7f1ff; }
+    #mdlUser .pick-list input { position: static; margin: 0; width: 15px; height: 15px; }
+    #mdlUser .media-box { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
+    #mdlUser .media-box img { height: 90px; max-width: 160px; object-fit: contain; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; }
     #mdlUser .chk-inline { display: flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; }
     #mdlUser .chk-inline input { position: static; margin: 0; width: 16px; height: 16px; }
 </style>
@@ -136,7 +148,7 @@
 
 {{-- Modal thêm / sửa thành viên --}}
 <div class="modal fade" id="mdlUser" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
         <form class="modal-content" id="frmUser" autocomplete="off">
             <div class="modal-header py-2">
                 <h5 class="modal-title" id="mdlUserTitle">Thêm thành viên</h5>
@@ -144,28 +156,64 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" name="id">
+
+                <div class="sec-title">Thông tin chính</div>
                 <div class="row g-2">
                     <div class="col-md-2"><label class="form-label small mb-0">Danh xưng</label><input class="form-control form-control-sm" name="title" placeholder="Ông/Bà/Mr/Ms"></div>
-                    <div class="col-md-5"><label class="form-label small mb-0">Họ</label><input class="form-control form-control-sm" name="last_name"></div>
-                    <div class="col-md-5"><label class="form-label small mb-0">Tên <span class="text-danger">*</span></label><input class="form-control form-control-sm" name="first_name" required></div>
-                    <div class="col-md-6"><label class="form-label small mb-0">Email <span class="text-danger">*</span></label><input class="form-control form-control-sm" name="email" type="email" required></div>
-                    <div class="col-md-6"><label class="form-label small mb-0">Điện thoại</label><input class="form-control form-control-sm" name="phone"></div>
-                    <div class="col-md-6"><label class="form-label small mb-0">Tổ chức</label><input class="form-control form-control-sm" name="organization"></div>
-                    <div class="col-md-6"><label class="form-label small mb-0">Chức vụ</label><input class="form-control form-control-sm" name="designation"></div>
-                    <div class="col-md-4"><label class="form-label small mb-0">Ngôn ngữ</label>
+                    <div class="col-md-4"><label class="form-label small mb-0">Họ</label><input class="form-control form-control-sm" name="last_name"></div>
+                    <div class="col-md-4"><label class="form-label small mb-0">Tên <span class="text-danger">*</span></label><input class="form-control form-control-sm" name="first_name" required></div>
+                    <div class="col-md-2"><label class="form-label small mb-0">Giới tính</label>
+                        <select class="form-select form-select-sm" name="gender"><option value="0">-Chọn-</option><option value="1">Nam</option><option value="2">Nữ</option></select></div>
+                    <div class="col-md-4"><label class="form-label small mb-0">Email <span class="text-danger">*</span></label><input class="form-control form-control-sm" name="email" type="email" required></div>
+                    <div class="col-md-4"><label class="form-label small mb-0">Điện thoại</label><input class="form-control form-control-sm" name="phone"></div>
+                    <div class="col-md-4"><label class="form-label small mb-0">CC email <span class="small-muted">(nhiều email cách nhau dấu phẩy)</span></label><input class="form-control form-control-sm" name="cc_email"></div>
+                    <div class="col-md-5"><label class="form-label small mb-0">Tổ chức</label><input class="form-control form-control-sm" name="organization"></div>
+                    <div class="col-md-5"><label class="form-label small mb-0">Chức vụ</label><input class="form-control form-control-sm" name="designation"></div>
+                    <div class="col-md-2"><label class="form-label small mb-0">Ngôn ngữ</label>
                         <select class="form-select form-select-sm" name="language"><option value="vi">Việt</option><option value="en">Anh</option></select></div>
-                    <div class="col-md-8"><label class="form-label small mb-0">Nhóm chính</label>
-                        <select class="form-select form-select-sm selGroup" name="parent_id"><option value="">— Không —</option></select></div>
-                    <div class="col-12"><label class="form-label small mb-0">Ghi chú</label><textarea class="form-control form-control-sm" name="note" rows="2"></textarea></div>
-                    <div class="col-12 d-none" id="wrapAddToCurEvent">
-                        <label class="chk-inline small"><input type="checkbox" id="chkAddToCurEvent" checked>
-                            Thêm luôn vào sự kiện đang chọn: <b id="curEventName"></b></label>
+                    <div class="col-md-6"><label class="form-label small mb-0">Địa chỉ</label><textarea class="form-control form-control-sm" name="address" rows="2"></textarea></div>
+                    <div class="col-md-6"><label class="form-label small mb-0">Ghi chú</label><textarea class="form-control form-control-sm" name="note" rows="2"></textarea></div>
+                </div>
+
+                <div class="sec-title">Nhóm</div>
+                <div class="row g-2">
+                    <div class="col-md-5"><label class="form-label small mb-0">Nhóm chính</label>
+                        <select class="form-select form-select-sm selGroup" name="parent_id"><option value="">— Không —</option></select>
+                        <div class="small-muted mt-1">"Tất cả nhóm" do hệ thống tự tính từ nhóm chính + nhóm bổ sung.</div></div>
+                    <div class="col-md-7"><label class="form-label small mb-0">Nhóm bổ sung <span class="small-muted">(đã chọn <span id="nExtra">0</span>)</span></label>
+                        <input class="form-control form-control-sm mb-1" id="extraSearch" placeholder="Lọc tên nhóm...">
+                        <div id="extraGroups" class="pick-list"></div></div>
+                </div>
+
+                <div class="sec-title">Giấy tờ & thanh toán</div>
+                <div class="row g-2">
+                    <div class="col-md-3"><label class="form-label small mb-0">CCCD/Passport</label><input class="form-control form-control-sm" name="id_number" maxlength="32"></div>
+                    <div class="col-md-3"><label class="form-label small mb-0">MS Thuế</label><input class="form-control form-control-sm" name="tax_number" maxlength="32"></div>
+                    <div class="col-md-3"><label class="form-label small mb-0">Lưu trú</label>
+                        <select class="form-select form-select-sm" name="payment_type"><option value="">-Chọn-</option><option value="trong_nuoc">Trong nước</option><option value="nuoc_ngoai">Nước ngoài</option></select></div>
+                    <div class="col-md-3"><label class="form-label small mb-0">Số tài khoản</label><input class="form-control form-control-sm" name="bank_acc_number" inputmode="numeric"></div>
+                    <div class="col-md-12"><label class="form-label small mb-0">Ngân hàng</label>
+                        <select class="form-select form-select-sm" name="bank_name_text" id="selBank"><option value="">-Chọn ngân hàng-</option></select></div>
+                </div>
+
+                <div id="secMedia" class="d-none">
+                    <div class="sec-title">Ảnh & chữ ký</div>
+                    <div class="row g-2">
+                        <div class="col-md-6"><div class="small mb-1">Ảnh</div><div id="mediaImages" class="media-box"></div></div>
+                        <div class="col-md-6"><div class="small mb-1">Chữ ký</div><div id="mediaSignature" class="media-box"></div></div>
                     </div>
+                    <div class="small-muted mt-1">Upload / đổi ảnh và chữ ký ở <a href="#" target="_blank" class="lnkFullEdit">trang sửa đầy đủ</a>.</div>
+                </div>
+
+                <div class="mt-3 d-none" id="wrapAddToCurEvent">
+                    <label class="chk-inline small"><input type="checkbox" id="chkAddToCurEvent" checked>
+                        Thêm luôn vào sự kiện đang chọn: <b id="curEventName"></b></label>
                 </div>
             </div>
             <div class="modal-footer py-2">
+                <a href="#" target="_blank" class="btn btn-outline-secondary btn-sm me-auto d-none lnkFullEdit" id="btnFullEdit">Mở trang sửa đầy đủ ↗</a>
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Huỷ</button>
-                <button type="submit" class="btn btn-primary btn-sm">Lưu</button>
+                <button type="submit" class="btn btn-primary btn-sm" id="btnSaveUser">Lưu</button>
             </div>
         </form>
     </div>
@@ -245,8 +293,12 @@
         const p = await api('GET', API.groupList, { limit: 1000 });
         const list = (p.data || []).map(g => ({ id: g.id, name: g.name || ('#' + g.id) })).sort((a, b) => a.name.localeCompare(b.name, 'vi'));
         list.forEach(g => state.groups[g.id] = g.name);
+        state.groupList = list;
         $$('.selGroup').forEach(sel => sel.insertAdjacentHTML('beforeend', list.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')));
     }
+    // Danh sách ngân hàng (config/banks.php), giống form đăng ký sự kiện
+    const BANKS = @json(collect(config('banks'))->map(fn($b, $code) => [$code, $b['public_name'] ?? $code])->sortBy(1)->values());
+    $('#selBank').insertAdjacentHTML('beforeend', BANKS.map(([code, name]) => `<option value="${esc(code)}">${esc(name)}</option>`).join(''));
     const evChecked = new Set();
     const MAX_EVENTS = 10;   // tối đa số sự kiện được chọn mỗi lần thêm
     function updateEvSelCount() {
@@ -435,8 +487,40 @@
     // ===== Thêm / sửa =====
     const mdlUser = new bootstrap.Modal($('#mdlUser'));
     const frm = $('#frmUser');
-    function openAdd() {
+    // Các trường text/select gửi lên API (parent_extra, ảnh, chữ ký xử lý riêng)
+    const USER_FIELDS = ['title', 'last_name', 'first_name', 'gender', 'email', 'phone', 'cc_email', 'organization', 'designation',
+        'language', 'address', 'note', 'parent_id', 'id_number', 'tax_number', 'payment_type', 'bank_acc_number', 'bank_name_text'];
+
+    // --- Nhóm bổ sung (parent_extra: danh sách id cách nhau dấu phẩy)
+    const extraChecked = new Set();
+    function renderExtraGroups() {
+        const q = ($('#extraSearch').value || '').toLowerCase();
+        $('#extraGroups').innerHTML = (state.groupList || []).filter(g => !q || g.name.toLowerCase().includes(q) || extraChecked.has(String(g.id)))
+            .map(g => { const on = extraChecked.has(String(g.id));
+                return `<label class="${on ? 'on' : ''}"><input type="checkbox" value="${esc(g.id)}" ${on ? 'checked' : ''}>${esc(g.name)}</label>`; })
+            .join('') || '<div class="small-muted p-2">Không có nhóm phù hợp</div>';
+        $$('#extraGroups input').forEach(c => c.onchange = () => {
+            c.checked ? extraChecked.add(c.value) : extraChecked.delete(c.value);
+            c.closest('label').classList.toggle('on', c.checked);
+            $('#nExtra').textContent = extraChecked.size;
+        });
+        $('#nExtra').textContent = extraChecked.size;
+    }
+    $('#extraSearch').oninput = renderExtraGroups;
+
+    // --- Ảnh & chữ ký: chỉ xem (id file, cách nhau dấu phẩy)
+    const imgs = ids => String(ids || '').split(',').map(s => s.trim()).filter(Boolean)
+        .map(id => `<a href="/test_cloud_file?fid=${encodeURIComponent(id)}" target="_blank"><img src="/test_cloud_file?fid=${encodeURIComponent(id)}" alt=""></a>`).join('')
+        || '<span class="small-muted">Chưa có</span>';
+
+    function resetUserForm() {
         frm.reset(); frm.id.value = '';
+        extraChecked.clear(); $('#extraSearch').value = ''; renderExtraGroups();
+        $('#secMedia').classList.add('d-none');
+        $('#btnFullEdit').classList.add('d-none');
+    }
+    function openAdd() {
+        resetUserForm();
         $('#mdlUserTitle').textContent = 'Thêm thành viên';
         $('#wrapAddToCurEvent').classList.toggle('d-none', !isEventMode());
         $('#curEventName').textContent = $('#selEvent').selectedOptions[0]?.textContent || '';
@@ -445,20 +529,32 @@
     async function openEdit(uid) {
         try {
             const u = await api('GET', API.userGet(uid));
-            frm.reset();
-            ['id', 'title', 'last_name', 'first_name', 'email', 'phone', 'organization', 'designation', 'language', 'parent_id', 'note']
-                .forEach(f => { if (frm[f]) frm[f].value = u[f] ?? ''; });
+            resetUserForm();
+            USER_FIELDS.forEach(f => { if (frm[f]) frm[f].value = u[f] ?? ''; });
+            if (!u.gender) frm.gender.value = '0';
+            if (u.bank_name_text && !frm.bank_name_text.value) // mã ngân hàng cũ không còn trong danh sách
+                frm.bank_name_text.insertAdjacentHTML('beforeend', `<option value="${esc(u.bank_name_text)}" selected>${esc(u.bank_name_text)} (không có trong danh sách)</option>`);
+            String(u.parent_extra || '').split(',').map(s => s.trim()).filter(Boolean).forEach(id => extraChecked.add(id));
+            renderExtraGroups();
             frm.id.value = uid;
+            $('#mediaImages').innerHTML = imgs(u.image_list);
+            $('#mediaSignature').innerHTML = imgs(u.signature);
+            $('#secMedia').classList.remove('d-none');
+            $$('.lnkFullEdit').forEach(a => a.href = '/admin/event-user-info/edit/' + encodeURIComponent(uid));
+            $('#btnFullEdit').classList.remove('d-none');
             $('#mdlUserTitle').textContent = 'Sửa thành viên #' + uid;
             $('#wrapAddToCurEvent').classList.add('d-none');
             mdlUser.show();
         } catch (e) { fail(e); }
     }
+    let savingUser = false;
     frm.onsubmit = async e => {
         e.preventDefault();
+        if (savingUser) return;
         const data = {};
-        ['title', 'last_name', 'first_name', 'email', 'phone', 'organization', 'designation', 'language', 'parent_id', 'note']
-            .forEach(f => data[f] = frm[f].value.trim());
+        USER_FIELDS.forEach(f => data[f] = frm[f].value.trim());
+        data.parent_extra = [...extraChecked].join(',');
+        savingUser = true; $('#btnSaveUser').disabled = true;
         try {
             if (frm.id.value) {
                 await api('POST', API.userUpdate(frm.id.value), data);
@@ -472,6 +568,7 @@
             }
             mdlUser.hide(); load();
         } catch (err) { fail(err); }
+        finally { savingUser = false; $('#btnSaveUser').disabled = false; }
     };
 
     // ===== Xoá / bỏ khỏi sự kiện / thêm vào sự kiện =====
