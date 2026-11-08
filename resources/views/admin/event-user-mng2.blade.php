@@ -18,6 +18,21 @@
     #eum2 .small-muted { font-size: 12px; color: #6c757d; }
     #eum2 tr.row-checked { background: #fff8e1; }
     #eum2 .table-wrap { overflow-x: auto; }
+
+    /* Danh sách chọn sự kiện. Không dùng .form-check-input: AdminLTE (BS4) đặt position:absolute
+       khiến ô tích thoát khỏi khung cuộn. */
+    #evTargets { max-height: 340px; overflow-y: auto; border: 1px solid #dee2e6; border-radius: 6px; }
+    #evTargets .ev-item { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 6px 10px;
+        font-weight: normal; font-size: 14px; cursor: pointer; border-bottom: 1px solid #f1f3f5; }
+    #evTargets .ev-item:last-child { border-bottom: 0; }
+    #evTargets .ev-item:hover { background: #f8f9fa; }
+    #evTargets .ev-item.on { background: #e7f1ff; }
+    #evTargets .ev-item input { position: static; margin: 3px 0 0; flex: 0 0 auto; width: 16px; height: 16px; cursor: pointer; }
+    #evTargets .ev-id { flex: 0 0 auto; min-width: 42px; color: #6c757d; font-variant-numeric: tabular-nums; }
+    #evTargets .ev-name { flex: 1 1 auto; line-height: 1.35; }
+    #evTargets.full .ev-item:not(.on) { opacity: .45; }
+    #mdlUser .chk-inline { display: flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; }
+    #mdlUser .chk-inline input { position: static; margin: 0; width: 16px; height: 16px; }
 </style>
 @endsection
 
@@ -143,7 +158,7 @@
                         <select class="form-select form-select-sm selGroup" name="parent_id"><option value="">— Không —</option></select></div>
                     <div class="col-12"><label class="form-label small mb-0">Ghi chú</label><textarea class="form-control form-control-sm" name="note" rows="2"></textarea></div>
                     <div class="col-12 d-none" id="wrapAddToCurEvent">
-                        <label class="form-check-label small"><input type="checkbox" class="form-check-input" id="chkAddToCurEvent" checked>
+                        <label class="chk-inline small"><input type="checkbox" id="chkAddToCurEvent" checked>
                             Thêm luôn vào sự kiện đang chọn: <b id="curEventName"></b></label>
                     </div>
                 </div>
@@ -166,7 +181,7 @@
             </div>
             <div class="modal-body">
                 <input class="form-control form-control-sm mb-2" id="evSearch" placeholder="Lọc tên sự kiện...">
-                <div id="evTargets" class="border rounded p-2" style="max-height:320px;overflow-y:auto"></div>
+                <div id="evTargets"></div>
                 <div class="mt-1"><b>Đã chọn <span id="nEvSel" class="text-danger">0</span> sự kiện.</b>
                     <span class="small-muted">Tích vào sự kiện cần thêm (tối đa 10). Thành viên đã có trong sự kiện sẽ được bỏ qua.</span></div>
             </div>
@@ -234,20 +249,29 @@
     }
     const evChecked = new Set();
     const MAX_EVENTS = 10;   // tối đa số sự kiện được chọn mỗi lần thêm
+    function updateEvSelCount() {
+        $('#nEvSel').textContent = evChecked.size;
+        $('#evTargets').classList.toggle('full', evChecked.size >= MAX_EVENTS);
+    }
     function renderEventTargets() {
         const q = ($('#evSearch').value || '').toLowerCase();
         $('#evTargets').innerHTML = state.events.filter(e => !q || e.name.toLowerCase().includes(q) || String(e.id) === q)
-            .map(e => `<label class="d-block small mb-1"><input type="checkbox" class="form-check-input me-1 evChk" value="${esc(e.id)}" ${evChecked.has(String(e.id)) ? 'checked' : ''}>#${esc(e.id)} — ${esc(e.name)}</label>`).join('')
-            || '<div class="small-muted">Không có sự kiện phù hợp</div>';
+            .map(e => {
+                const on = evChecked.has(String(e.id));
+                return `<label class="ev-item ${on ? 'on' : ''}"><input type="checkbox" class="evChk" value="${esc(e.id)}" ${on ? 'checked' : ''}>`
+                    + `<span class="ev-id">#${esc(e.id)}</span><span class="ev-name">${esc(e.name)}</span></label>`;
+            }).join('')
+            || '<div class="small-muted p-2">Không có sự kiện phù hợp</div>';
         $$('#evTargets .evChk').forEach(c => c.onchange = () => {
             if (c.checked && evChecked.size >= MAX_EVENTS) {
                 c.checked = false;
                 return alert(`Chỉ được chọn tối đa ${MAX_EVENTS} sự kiện mỗi lần.`);
             }
             c.checked ? evChecked.add(c.value) : evChecked.delete(c.value);
-            $('#nEvSel').textContent = evChecked.size;
+            c.closest('.ev-item').classList.toggle('on', c.checked);
+            updateEvSelCount();
         });
-        $('#nEvSel').textContent = evChecked.size;
+        updateEvSelCount();
     }
 
     // ===== Danh sách =====
