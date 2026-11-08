@@ -166,8 +166,9 @@
             </div>
             <div class="modal-body">
                 <input class="form-control form-control-sm mb-2" id="evSearch" placeholder="Lọc tên sự kiện...">
-                <select id="selEventsTarget" class="form-select form-select-sm" multiple size="12"></select>
-                <div class="small-muted mt-1">Giữ Ctrl để chọn nhiều sự kiện. Thành viên đã có trong sự kiện sẽ được bỏ qua.</div>
+                <div id="evTargets" class="border rounded p-2" style="max-height:320px;overflow-y:auto"></div>
+                <div class="mt-1"><b>Đã chọn <span id="nEvSel" class="text-danger">0</span> sự kiện.</b>
+                    <span class="small-muted">Tích vào sự kiện cần thêm (tối đa 10). Thành viên đã có trong sự kiện sẽ được bỏ qua.</span></div>
             </div>
             <div class="modal-footer py-2">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Huỷ</button>
@@ -231,10 +232,22 @@
         list.forEach(g => state.groups[g.id] = g.name);
         $$('.selGroup').forEach(sel => sel.insertAdjacentHTML('beforeend', list.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')));
     }
+    const evChecked = new Set();
+    const MAX_EVENTS = 10;   // tối đa số sự kiện được chọn mỗi lần thêm
     function renderEventTargets() {
         const q = ($('#evSearch').value || '').toLowerCase();
-        $('#selEventsTarget').innerHTML = state.events.filter(e => !q || e.name.toLowerCase().includes(q) || String(e.id) === q)
-            .map(e => `<option value="${esc(e.id)}">#${esc(e.id)} — ${esc(e.name)}</option>`).join('');
+        $('#evTargets').innerHTML = state.events.filter(e => !q || e.name.toLowerCase().includes(q) || String(e.id) === q)
+            .map(e => `<label class="d-block small mb-1"><input type="checkbox" class="form-check-input me-1 evChk" value="${esc(e.id)}" ${evChecked.has(String(e.id)) ? 'checked' : ''}>#${esc(e.id)} — ${esc(e.name)}</label>`).join('')
+            || '<div class="small-muted">Không có sự kiện phù hợp</div>';
+        $$('#evTargets .evChk').forEach(c => c.onchange = () => {
+            if (c.checked && evChecked.size >= MAX_EVENTS) {
+                c.checked = false;
+                return alert(`Chỉ được chọn tối đa ${MAX_EVENTS} sự kiện mỗi lần.`);
+            }
+            c.checked ? evChecked.add(c.value) : evChecked.delete(c.value);
+            $('#nEvSel').textContent = evChecked.size;
+        });
+        $('#nEvSel').textContent = evChecked.size;
     }
 
     // ===== Danh sách =====
@@ -449,18 +462,27 @@
         catch (e) { fail(e); }
     }
     const mdlToEvent = new bootstrap.Modal($('#mdlToEvent'));
+    let addingToEvent = false;
     $('#btnDoAddToEvent').onclick = async () => {
-        const evs = Array.from($('#selEventsTarget').selectedOptions).map(o => o.value);
-        if (!evs.length) return alert('Hãy chọn ít nhất 1 sự kiện');
+        if (addingToEvent) return;
+        const evs = [...evChecked];
+        const users = [...state.selected.keys()];
+        if (!evs.length) return alert('Hãy tích chọn ít nhất 1 sự kiện');
+        if (evs.length > MAX_EVENTS) return alert(`Chỉ được chọn tối đa ${MAX_EVENTS} sự kiện mỗi lần.`);
+        const list = evs.map(id => '• #' + id + ' — ' + ((state.events.find(e => String(e.id) === id) || {}).name || '')).join('\n');
+        if (!confirm(`Bạn có muốn thêm ${users.length} thành viên vào các sự kiện sau không:\n\n${list}`)) return;
+        const btn = $('#btnDoAddToEvent');
+        addingToEvent = true; btn.disabled = true; btn.textContent = 'Đang thêm...';
         try {
-            ok(await api('POST', API.addToEvent, { mmSelectId: [...state.selected.keys()], mmEventCheck: evs }));
+            ok(await api('POST', API.addToEvent, { mmSelectId: users, mmEventCheck: evs }));
             mdlToEvent.hide(); clearSel(); load();
         } catch (e) { fail(e); }
+        finally { addingToEvent = false; btn.disabled = false; btn.textContent = 'Thêm'; }
     };
 
     // ===== Sự kiện UI =====
     $('#btnAdd').onclick = openAdd;
-    $('#btnAddToEvent').onclick = () => { $('#evSearch').value = ''; renderEventTargets(); mdlToEvent.show(); };
+    $('#btnAddToEvent').onclick = () => { $('#evSearch').value = ''; evChecked.clear(); renderEventTargets(); mdlToEvent.show(); };
     $('#btnDeleteSel').onclick = () => deleteUsers([...state.selected.keys()]);
     $('#btnRemoveFromEvent').onclick = () => removeFromEvent([...state.selected.values()].filter(Boolean));
     $('#evSearch').oninput = renderEventTargets;
