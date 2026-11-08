@@ -42,7 +42,12 @@
     #mdlUser .pick-list label.on { background: #e7f1ff; }
     #mdlUser .pick-list input { position: static; margin: 0; width: 15px; height: 15px; }
     #mdlUser .media-box { display: flex; flex-wrap: wrap; gap: 6px; min-height: 40px; }
-    #mdlUser .media-box img { height: 90px; max-width: 160px; object-fit: contain; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; }
+    #mdlUser .media-box { padding: 6px; border: 1px dashed #ced4da; border-radius: 6px; }
+    #mdlUser .media-item { position: relative; }
+    #mdlUser .media-item img { height: 90px; max-width: 160px; object-fit: contain; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; display: block; }
+    #mdlUser .media-item .rm { position: absolute; top: -7px; right: -7px; width: 20px; height: 20px; line-height: 18px; padding: 0;
+        border-radius: 50%; border: 0; background: #dc3545; color: #fff; font-size: 13px; text-align: center; cursor: pointer; }
+    #mdlUser .media-item.uploading img { opacity: .4; }
     #mdlUser .chk-inline { display: flex; align-items: center; gap: 6px; font-weight: normal; margin: 0; }
     #mdlUser .chk-inline input { position: static; margin: 0; width: 16px; height: 16px; }
 </style>
@@ -196,13 +201,24 @@
                         <select class="form-select form-select-sm" name="bank_name_text" id="selBank"><option value="">-Chọn ngân hàng-</option></select></div>
                 </div>
 
-                <div id="secMedia" class="d-none">
+                <div id="secMedia">
                     <div class="sec-title">Ảnh & chữ ký</div>
-                    <div class="row g-2">
-                        <div class="col-md-6"><div class="small mb-1">Ảnh</div><div id="mediaImages" class="media-box"></div></div>
-                        <div class="col-md-6"><div class="small mb-1">Chữ ký</div><div id="mediaSignature" class="media-box"></div></div>
+                    <div class="row g-3">
+                        @foreach (['image_list' => 'Ảnh', 'signature' => 'Chữ ký'] as $mf => $mlabel)
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="small">{{ $mlabel }}</span>
+                                <label class="btn btn-outline-primary btn-sm py-0 mb-0">
+                                    <i class="fa fa-upload"></i> Tải ảnh lên
+                                    <input type="file" class="d-none media-file" data-field="{{ $mf }}" accept="image/*" multiple>
+                                </label>
+                                <span class="small-muted media-status" data-field="{{ $mf }}"></span>
+                            </div>
+                            <div class="media-box" data-field="{{ $mf }}"></div>
+                        </div>
+                        @endforeach
                     </div>
-                    <div class="small-muted mt-1">Upload / đổi ảnh và chữ ký ở <a href="#" target="_blank" class="lnkFullEdit">trang sửa đầy đủ</a>.</div>
+                    <div class="small-muted mt-1">Ảnh đầu tiên là ảnh đại diện. Bấm × để bỏ ảnh khỏi thành viên (file vẫn còn trong kho), bấm Lưu để áp dụng.</div>
                 </div>
 
                 <div class="mt-3 d-none" id="wrapAddToCurEvent">
@@ -508,15 +524,61 @@
     }
     $('#extraSearch').oninput = renderExtraGroups;
 
-    // --- Ảnh & chữ ký: chỉ xem (id file, cách nhau dấu phẩy)
-    const imgs = ids => String(ids || '').split(',').map(s => s.trim()).filter(Boolean)
-        .map(id => `<a href="/test_cloud_file?fid=${encodeURIComponent(id)}" target="_blank"><img src="/test_cloud_file?fid=${encodeURIComponent(id)}" alt=""></a>`).join('')
-        || '<span class="small-muted">Chưa có</span>';
+    // --- Ảnh & chữ ký: lưu dạng id file cách nhau dấu phẩy. Upload qua API có sẵn /api/member-file/upload
+    //     (giống trang sửa gốc), nhận {id, name, link} rồi nối id vào danh sách.
+    const MEDIA_FIELDS = ['image_list', 'signature'];
+    const MAX_UPLOAD = {{ (int) \App\Models\SiteMng::getMaxSizeUpload() }};
+    const media = { image_list: [], signature: [] };
+    let uploadingCount = 0;
+    const idList = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
+    function renderMedia(field) {
+        const box = document.querySelector(`#mdlUser .media-box[data-field="${field}"]`);
+        box.innerHTML = media[field].map((id, i) =>
+            `<span class="media-item"><a href="/test_cloud_file?fid=${encodeURIComponent(id)}" target="_blank" title="${i === 0 ? 'Ảnh đại diện' : ''}">`
+            + `<img src="/test_cloud_file?fid=${encodeURIComponent(id)}" alt=""></a>`
+            + `<button type="button" class="rm" data-i="${i}" title="Bỏ ảnh này">×</button></span>`).join('')
+            || '<span class="small-muted">Chưa có</span>';
+        box.querySelectorAll('.rm').forEach(b => b.onclick = () => { media[field].splice(+b.dataset.i, 1); renderMedia(field); });
+    }
+    function setMediaStatus(field, txt) { document.querySelector(`#mdlUser .media-status[data-field="${field}"]`).textContent = txt; }
+    async function uploadOne(file) {
+        const fd = new FormData();
+        fd.append('file_data', file);
+        fd.append('set_parent_id', '0');
+        const res = await fetch('/api/member-file/upload', { method: 'POST', body: fd,
+            headers: { 'Authorization': 'Bearer ' + TOKEN, 'Accept': 'application/json' } });
+        let js = null;
+        try { js = await res.json(); } catch (e) { throw new Error('HTTP ' + res.status); }
+        if (!res.ok || js.code < 0) throw new Error(js.message || js.payload || ('HTTP ' + res.status));
+        const p = Array.isArray(js.payload) ? js.payload[0] : js.payload;
+        if (!p || !p.id) throw new Error('Server không trả id file');
+        return String(p.id);
+    }
+    $$('#mdlUser .media-file').forEach(inp => inp.onchange = async () => {
+        const field = inp.dataset.field;
+        const files = Array.from(inp.files);
+        inp.value = '';
+        let done = 0, errs = [];
+        for (const f of files) {
+            if (!f.type.startsWith('image/')) { errs.push(`${f.name}: không phải ảnh`); continue; }
+            if (f.size > MAX_UPLOAD) { errs.push(`${f.name}: quá ${Math.round(MAX_UPLOAD / 1048576)}MB`); continue; }
+            uploadingCount++; $('#btnSaveUser').disabled = true;
+            setMediaStatus(field, `Đang tải ${done + 1}/${files.length}...`);
+            try {
+                const id = await uploadOne(f);
+                if (!media[field].includes(id)) media[field].push(id);
+                renderMedia(field); done++;
+            } catch (e) { errs.push(`${f.name}: ${e.message}`); }
+            finally { uploadingCount--; if (!uploadingCount && !savingUser) $('#btnSaveUser').disabled = false; }
+        }
+        setMediaStatus(field, done ? `Đã tải ${done} ảnh, bấm Lưu để áp dụng` : '');
+        if (errs.length) fail(new Error('Lỗi tải ảnh:\n' + errs.join('\n')));
+    });
 
     function resetUserForm() {
         frm.reset(); frm.id.value = '';
         extraChecked.clear(); $('#extraSearch').value = ''; renderExtraGroups();
-        $('#secMedia').classList.add('d-none');
+        MEDIA_FIELDS.forEach(f => { media[f] = []; setMediaStatus(f, ''); renderMedia(f); });
         $('#btnFullEdit').classList.add('d-none');
     }
     function openAdd() {
@@ -537,9 +599,7 @@
             String(u.parent_extra || '').split(',').map(s => s.trim()).filter(Boolean).forEach(id => extraChecked.add(id));
             renderExtraGroups();
             frm.id.value = uid;
-            $('#mediaImages').innerHTML = imgs(u.image_list);
-            $('#mediaSignature').innerHTML = imgs(u.signature);
-            $('#secMedia').classList.remove('d-none');
+            MEDIA_FIELDS.forEach(f => { media[f] = idList(u[f]); renderMedia(f); });
             $$('.lnkFullEdit').forEach(a => a.href = '/admin/event-user-info/edit/' + encodeURIComponent(uid));
             $('#btnFullEdit').classList.remove('d-none');
             $('#mdlUserTitle').textContent = 'Sửa thành viên #' + uid;
@@ -551,9 +611,11 @@
     frm.onsubmit = async e => {
         e.preventDefault();
         if (savingUser) return;
+        if (uploadingCount) return alert('Đang tải ảnh lên, vui lòng đợi xong rồi bấm Lưu.');
         const data = {};
         USER_FIELDS.forEach(f => data[f] = frm[f].value.trim());
         data.parent_extra = [...extraChecked].join(',');
+        MEDIA_FIELDS.forEach(f => data[f] = media[f].join(','));
         savingUser = true; $('#btnSaveUser').disabled = true;
         try {
             if (frm.id.value) {
@@ -568,7 +630,7 @@
             }
             mdlUser.hide(); load();
         } catch (err) { fail(err); }
-        finally { savingUser = false; $('#btnSaveUser').disabled = false; }
+        finally { savingUser = false; $('#btnSaveUser').disabled = !!uploadingCount; }
     };
 
     // ===== Xoá / bỏ khỏi sự kiện / thêm vào sự kiện =====
