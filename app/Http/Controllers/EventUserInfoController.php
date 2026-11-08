@@ -51,6 +51,15 @@ class EventUserInfoController extends BaseController
     }
 
 
+    /**
+     * /admin/event-user-mng2 : CRUD thành viên + gán vào sự kiện, toàn bộ thao tác gọi API có sẵn
+     * (/api/event-user-info, /api/event-and-user, /api/event-info/addUserToEvent).
+     */
+    public function mng2()
+    {
+        return view('admin.event-user-mng2');
+    }
+
     public function tree_index()
     {
         $objMeta = $this->data::getMetaObj();

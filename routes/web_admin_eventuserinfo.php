@@ -44,4 +44,13 @@ Route2::prefix('admin')->group(function () {
         $r->route_desc_ = 'Tree EventUserInfo';
     });
 
+    // Giao diện quản lý Thành viên sự kiện (bản 2) - chỉ dùng lại các API có sẵn.
+    // Dùng chung quyền với trang "Quản lý Khách" (admin.event-user-info.index).
+    $r = Route2::get('/event-user-mng2', [
+        \App\Http\Controllers\EventUserInfoController::class, 'mng2',
+    ])->name('admin.event-user-mng2');
+    $r->middleware('can:admin.event-user-info.index');
+    $r->route_group_desc_ = 'Thao tác với EventUserInfo';
+    $r->route_desc_ = 'Quản lý Thành viên sự kiện (giao diện 2)';
+
 });
